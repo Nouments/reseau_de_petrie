@@ -14,6 +14,10 @@ import {
   Share2,
   Play,
   Pause,
+  Settings2,
+  FileText,
+  Type,
+  Hash,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,6 +29,26 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import {
+  SidebarProvider,
+  Sidebar,
+  SidebarHeader,
+  SidebarContent,
+  SidebarFooter,
+  SidebarTrigger,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarInset,
+} from "@/components/ui/sidebar";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+  } from "@/components/ui/dropdown-menu";
 
 type Tool = "select" | "place" | "transition" | "arc";
 type NetworkElement = Place | Transition;
@@ -35,18 +59,18 @@ const TRANSITION_HEIGHT = 20;
 
 const getInitialElements = (): Map<string, NetworkElement> => {
   const initialElements = new Map<string, NetworkElement>();
-  initialElements.set('p1', { id: 'p1', type: 'place', position: { x: 100, y: 150 }, name: 'Client Ready', tokens: 1 });
-  initialElements.set('p2', { id: 'p2', type: 'place', position: { x: 300, y: 150 }, name: 'Discover Sent', tokens: 0 });
-  initialElements.set('p3', { id: 'p3', type: 'place', position: { x: 500, y: 150 }, name: 'Offer Received', tokens: 0 });
-  initialElements.set('p4', { id: 'p4', type: 'place', position: { x: 700, y: 150 }, name: 'Request Sent', tokens: 0 });
-  initialElements.set('p5', { id: 'p5', type: 'place', position: { x: 900, y: 150 }, name: 'Leased', tokens: 0 });
-  initialElements.set('p6', { id: 'p6', type: 'place', position: { x: 500, y: 350 }, name: 'Available IPs', tokens: 5 });
-  initialElements.set('p7', { id: 'p7', type: 'place', position: { x: 700, y: 350 }, name: 'Reserved IPs', tokens: 0 });
+  initialElements.set('p1', { id: 'p1', type: 'place', position: { x: 150, y: 150 }, name: 'Client Ready', tokens: 1 });
+  initialElements.set('p2', { id: 'p2', type: 'place', position: { x: 350, y: 150 }, name: 'Discover Sent', tokens: 0 });
+  initialElements.set('p3', { id: 'p3', type: 'place', position: { x: 550, y: 150 }, name: 'Offer Received', tokens: 0 });
+  initialElements.set('p4', { id: 'p4', type: 'place', position: { x: 750, y: 150 }, name: 'Request Sent', tokens: 0 });
+  initialElements.set('p5', { id: 'p5', type: 'place', position: { x: 950, y: 150 }, name: 'Leased', tokens: 0 });
+  initialElements.set('p6', { id: 'p6', type: 'place', position: { x: 550, y: 350 }, name: 'Available IPs', tokens: 5 });
+  initialElements.set('p7', { id: 'p7', type: 'place', position: { x: 750, y: 350 }, name: 'Reserved IPs', tokens: 0 });
   
-  initialElements.set('t1', { id: 't1', type: 'transition', position: { x: 200, y: 150 }, name: 'Discover', isFirable: false });
-  initialElements.set('t2', { id: 't2', type: 'transition', position: { x: 400, y: 250 }, name: 'Offer', isFirable: false });
-  initialElements.set('t3', { id: 't3', type: 'transition', position: { x: 600, y: 150 }, name: 'Request', isFirable: false });
-  initialElements.set('t4', { id: 't4', type: 'transition', position: { x: 800, y: 250 }, name: 'Acknowledge', isFirable: false });
+  initialElements.set('t1', { id: 't1', type: 'transition', position: { x: 250, y: 150 }, name: 'Discover', isFirable: false });
+  initialElements.set('t2', { id: 't2', type: 'transition', position: { x: 450, y: 250 }, name: 'Offer', isFirable: false });
+  initialElements.set('t3', { id: 't3', type: 'transition', position: { x: 650, y: 150 }, name: 'Request', isFirable: false });
+  initialElements.set('t4', { id: 't4', type: 'transition', position: { x: 850, y: 250 }, name: 'Acknowledge', isFirable: false });
 
   return initialElements;
 }
@@ -66,6 +90,16 @@ const getInitialArcs = (): Map<string, Arc> => {
     initialArcs.set('a11', { id: 'a11', sourceId: 't4', destinationId: 'p5' });
     return initialArcs;
 }
+
+const PropertyDisplay = ({ label, value, icon }: { label: string, value: string | number, icon: React.ReactNode }) => (
+    <div className="flex items-center justify-between text-sm">
+        <div className="flex items-center gap-2 text-muted-foreground">
+            {icon}
+            <span>{label}</span>
+        </div>
+        <span className="font-medium text-foreground">{value}</span>
+    </div>
+);
 
 
 export default function PetriNetEditor() {
@@ -199,7 +233,6 @@ export default function PetriNetEditor() {
         return;
     }
 
-    // Fire a random firable transition
     const randomIndex = Math.floor(Math.random() * firableTransitions.length);
     fireTransition(firableTransitions[randomIndex].id);
   }, [elements]);
@@ -349,68 +382,102 @@ export default function PetriNetEditor() {
     setEditingElementId(null);
   }
 
+  const ToolButton = ({ value, icon, label }: { value: Tool, icon: React.ReactNode, label: string }) => (
+    <Button
+      onClick={() => { setTool(value); if (value === 'arc') setArcStartState(null); }}
+      variant={tool === value ? "secondary" : "ghost"}
+      className="justify-start w-full"
+    >
+      {icon} {label}
+    </Button>
+  );
+
   return (
-    <div className="flex flex-col h-screen w-full bg-background font-body text-foreground overflow-hidden">
-      <header className="flex items-center justify-between p-2 border-b">
-        <div className="flex items-center gap-2">
-            <Share2 className="text-primary" />
-            <h1 className="text-xl font-bold text-primary">PetriPainter</h1>
-        </div>
-        <div className="flex items-center gap-2">
-            {isSimulating && <div className="flex items-center gap-2 text-sm text-primary animate-pulse"><div className="w-2 h-2 rounded-full bg-primary" />Simulating...</div>}
-            <Button onClick={clearAll} variant="destructive" size="sm"><Trash2 className="mr-2 h-4 w-4" /> Clear Canvas</Button>
-        </div>
-      </header>
-      <div className="flex flex-1">
-        <aside className="w-64 p-4 border-r">
-          <Card>
-            <CardHeader>
-              <CardTitle>Tools</CardTitle>
-              <CardDescription>Select a tool to build your net.</CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-2">
-              <Button onClick={() => setTool("select")} variant={tool === "select" ? "secondary" : "ghost"} className="justify-start"> <MousePointer className="mr-2 h-4 w-4" /> Select & Move </Button>
-              <Button onClick={() => setTool("place")} variant={tool === "place" ? "secondary" : "ghost"} className="justify-start"> <Circle className="mr-2 h-4 w-4" /> Add Place </Button>
-              <Button onClick={() => setTool("transition")} variant={tool === "transition" ? "secondary" : "ghost"} className="justify-start"> <RectangleHorizontal className="mr-2 h-4 w-4" /> Add Transition </Button>
-              <Button onClick={() => { setTool("arc"); setArcStartState(null); }} variant={tool === "arc" ? "secondary" : "ghost"} className="justify-start"> <ArrowRight className="mr-2 h-4 w-4" /> Connect (Arc) </Button>
-            </CardContent>
-          </Card>
-          
-          <Separator className="my-4" />
-          
-          <Card>
-            <CardHeader>
-                <CardTitle>Simulation</CardTitle>
-                <CardDescription>Control the execution of the model.</CardDescription>
-            </CardHeader>
-            <CardContent className="flex items-center gap-2">
-                <Button onClick={() => setIsSimulating(true)} disabled={isSimulating} className="flex-1">
-                    <Play className="mr-2 h-4 w-4" /> Start
-                </Button>
-                <Button onClick={() => setIsSimulating(false)} disabled={!isSimulating} variant="outline" className="flex-1">
-                    <Pause className="mr-2 h-4 w-4" /> Stop
-                </Button>
-            </CardContent>
-          </Card>
+    <SidebarProvider>
+    <div className="flex h-screen w-full bg-background font-body text-foreground overflow-hidden">
+        <Sidebar>
+            <SidebarHeader>
+                <div className="flex items-center gap-2 p-2">
+                    <Share2 className="text-primary" />
+                    <h1 className="text-xl font-bold text-primary">PetriPainter</h1>
+                </div>
+            </SidebarHeader>
+            <SidebarContent className="p-0">
+                <SidebarGroup>
+                    <SidebarGroupLabel className="flex items-center"><Settings2 className="mr-2"/>Controls</SidebarGroupLabel>
+                    <div className="grid gap-2">
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" className="w-full justify-start">
+                                    <MousePointer className="mr-2 h-4 w-4" />
+                                    {tool.charAt(0).toUpperCase() + tool.slice(1)} Tool
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                                <DropdownMenuItem onSelect={() => { setTool("select"); }}>
+                                    <MousePointer className="mr-2 h-4 w-4" /> Select & Move
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onSelect={() => { setTool("place"); }}>
+                                     <Circle className="mr-2 h-4 w-4" /> Add Place
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onSelect={() => { setTool("transition"); }}>
+                                    <RectangleHorizontal className="mr-2 h-4 w-4" /> Add Transition
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onSelect={() => { setTool("arc"); setArcStartState(null); }}>
+                                    <ArrowRight className="mr-2 h-4 w-4" /> Connect (Arc)
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
 
-          <Separator className="my-4" />
+                        <div className="flex items-center gap-2">
+                            <Button onClick={() => setIsSimulating(true)} disabled={isSimulating} className="flex-1">
+                                <Play className="mr-2 h-4 w-4" /> Start
+                            </Button>
+                            <Button onClick={() => setIsSimulating(false)} disabled={!isSimulating} variant="outline" className="flex-1">
+                                <Pause className="mr-2 h-4 w-4" /> Stop
+                            </Button>
+                        </div>
+                         {isSimulating && <div className="flex items-center justify-center gap-2 text-sm text-primary animate-pulse"><div className="w-2 h-2 rounded-full bg-primary" />Simulating...</div>}
+                    </div>
+                </SidebarGroup>
 
-          {selectedElement?.type === 'place' && (
-             <Card>
-                <CardHeader>
-                  <CardTitle>Tokens</CardTitle>
-                  <CardDescription>Manage tokens for '{selectedElement.name}'.</CardDescription>
-                </CardHeader>
-                <CardContent className="flex items-center justify-between">
-                    <Button size="icon" variant="outline" onClick={() => changeTokens(-1)}><Minus className="h-4 w-4" /></Button>
-                    <span className="text-2xl font-bold">{selectedElement.tokens}</span>
-                    <Button size="icon" variant="outline" onClick={() => changeTokens(1)}><Plus className="h-4 w-4" /></Button>
-                </CardContent>
-              </Card>
-          )}
+                <Separator />
+                
+                <SidebarGroup>
+                    <SidebarGroupLabel className="flex items-center"><FileText className="mr-2"/>Properties</SidebarGroupLabel>
+                    <div className="p-2 space-y-4">
+                        {selectedElement ? (
+                            <>
+                                <PropertyDisplay label="Name" value={selectedElement.name} icon={<FileText size={16} />} />
+                                <PropertyDisplay label="Type" value={selectedElement.type} icon={<Type size={16} />} />
+                                {selectedElement.type === 'place' && (
+                                    <>
+                                        <Separator />
+                                        <PropertyDisplay label="Tokens" value={selectedElement.tokens} icon={<Hash size={16} />} />
+                                        <div className="flex items-center justify-between pt-2">
+                                            <Button size="icon" variant="outline" onClick={() => changeTokens(-1)}><Minus className="h-4 w-4" /></Button>
+                                            <span className="text-lg font-bold">{selectedElement.tokens}</span>
+                                            <Button size="icon" variant="outline" onClick={() => changeTokens(1)}><Plus className="h-4 w-4" /></Button>
+                                        </div>
+                                    </>
+                                )}
+                            </>
+                        ) : (
+                            <p className="text-sm text-muted-foreground text-center py-4">Select an element to see its properties.</p>
+                        )}
+                    </div>
+                </SidebarGroup>
+            </SidebarContent>
+            <SidebarFooter>
+                <Button onClick={clearAll} variant="destructive" size="sm" className="w-full"><Trash2 className="mr-2 h-4 w-4" /> Clear Canvas</Button>
+            </SidebarFooter>
+        </Sidebar>
 
-        </aside>
+        <SidebarInset>
         <main className="flex-1 relative bg-slate-100 dark:bg-slate-900/50">
+           <div className="absolute top-2 left-2 z-10">
+                <SidebarTrigger />
+            </div>
           <svg
             ref={svgRef}
             className="w-full h-full cursor-crosshair"
@@ -432,7 +499,6 @@ export default function PetriNetEditor() {
               </marker>
             </defs>
 
-            {/* Arcs */}
             {Array.from(arcs.values()).map((arc) => {
               const source = getElement(arc.sourceId);
               const dest = getElement(arc.destinationId);
@@ -442,13 +508,50 @@ export default function PetriNetEditor() {
               const dy = dest.position.y - source.position.y;
               const angle = Math.atan2(dy, dx);
               
-              const sourceRadius = source.type === 'place' ? PLACE_RADIUS : TRANSITION_WIDTH / 2;
-              const destRadius = dest.type === 'place' ? PLACE_RADIUS : TRANSITION_WIDTH / 2;
+              const sourceRadius = source.type === 'place' ? PLACE_RADIUS : Math.max(TRANSITION_WIDTH / 2, TRANSITION_HEIGHT / 2);
+              const destRadius = dest.type === 'place' ? PLACE_RADIUS : Math.max(TRANSITION_WIDTH / 2, TRANSITION_HEIGHT / 2);
               
-              const startX = source.position.x + sourceRadius * Math.cos(angle);
-              const startY = source.position.y + sourceRadius * Math.sin(angle);
-              const endX = dest.position.x - destRadius * Math.cos(angle);
-              const endY = dest.position.y - destRadius * Math.sin(angle);
+              let startX = source.position.x;
+              let startY = source.position.y;
+              let endX = dest.position.x;
+              let endY = dest.position.y;
+
+              if (source.type === 'place') {
+                 startX += sourceRadius * Math.cos(angle);
+                 startY += sourceRadius * Math.sin(angle);
+              } else {
+                 const xBound = TRANSITION_WIDTH / 2;
+                 const yBound = TRANSITION_HEIGHT / 2;
+                 const tanAngle = Math.tan(angle);
+                 const xIntersect = Math.abs(yBound / tanAngle);
+                 const yIntersect = Math.abs(xBound * tanAngle);
+                 if (xIntersect < xBound) {
+                    startX += xIntersect * Math.sign(dx);
+                    startY += yBound * Math.sign(dy);
+                 } else {
+                    startX += xBound * Math.sign(dx);
+                    startY += yIntersect * Math.sign(dy);
+                 }
+              }
+
+              if (dest.type === 'place') {
+                  endX -= destRadius * Math.cos(angle);
+                  endY -= destRadius * Math.sin(angle);
+              } else {
+                 const xBound = TRANSITION_WIDTH / 2;
+                 const yBound = TRANSITION_HEIGHT / 2;
+                 const tanAngle = Math.tan(angle);
+                 const xIntersect = Math.abs(yBound / tanAngle);
+                 const yIntersect = Math.abs(xBound * tanAngle);
+                 if (xIntersect < xBound) {
+                    endX -= xIntersect * Math.sign(dx);
+                    endY -= yBound * Math.sign(dy);
+                 } else {
+                    endX -= xBound * Math.sign(dx);
+                    endY -= yIntersect * Math.sign(dy);
+                 }
+              }
+
 
               return (
                 <line
@@ -463,7 +566,6 @@ export default function PetriNetEditor() {
               );
             })}
             
-            {/* Preview Arc */}
             {arcStartState && (
                 <line
                     x1={arcStartState.pos.x}
@@ -475,25 +577,24 @@ export default function PetriNetEditor() {
                 />
             )}
 
-            {/* Elements */}
             {Array.from(elements.values()).map((el) => (
               <g
                 key={el.id}
                 transform={`translate(${el.position.x}, ${el.position.y})`}
                 onMouseDown={(e) => handleElementMouseDown(e, el.id)}
                 onDoubleClick={() => handleDoubleClick(el.id)}
-                className="cursor-pointer"
+                className="cursor-pointer group/element"
               >
                 {el.type === "place" ? (
                   <>
                     <circle
                       r={PLACE_RADIUS}
-                      className={cn("stroke-2 transition-all", selectedElementId === el.id ? "stroke-primary fill-primary/10" : "stroke-foreground/80 fill-background")}
+                      className={cn("stroke-2 transition-all", selectedElementId === el.id ? "stroke-primary fill-primary/10" : "stroke-foreground/80 fill-background group-hover/element:stroke-primary")}
                     />
                     <text
                       textAnchor="middle"
                       dy="5"
-                      className="fill-current font-semibold select-none"
+                      className="fill-current font-semibold select-none pointer-events-none"
                     >
                       {el.tokens > 0 && el.tokens}
                     </text>
@@ -505,16 +606,16 @@ export default function PetriNetEditor() {
                     width={TRANSITION_WIDTH}
                     height={TRANSITION_HEIGHT}
                     className={cn("stroke-2 transition-all", 
-                        selectedElementId === el.id ? "stroke-primary" : "stroke-foreground/80",
+                        selectedElementId === el.id ? "stroke-primary" : "stroke-foreground/80 group-hover/element:stroke-primary",
                         el.isFirable ? "fill-accent/80 hover:fill-accent" : "fill-background"
                     )}
-                    onClick={() => fireTransition(el.id)}
+                    onClick={(e) => { e.stopPropagation(); fireTransition(el.id); }}
                   />
                 )}
                 <text
                   textAnchor="middle"
                   y={el.type === 'place' ? PLACE_RADIUS + 15 : TRANSITION_HEIGHT / 2 + 15}
-                  className="fill-current select-none text-sm"
+                  className="fill-current select-none text-sm pointer-events-none"
                 >
                   {editingElementId !== el.id && el.name}
                 </text>
@@ -534,11 +635,13 @@ export default function PetriNetEditor() {
                   left: getElement(editingElementId)!.position.x - 40,
                   top: getElement(editingElementId)!.position.y + (getElement(editingElementId)!.type === 'place' ? PLACE_RADIUS + 5 : TRANSITION_HEIGHT / 2 + 5),
                   width: 80,
+                  transform: 'translateX(-50%)',
                 }}
               />
             )}
         </main>
-      </div>
+        </SidebarInset>
     </div>
+    </SidebarProvider>
   );
 }
