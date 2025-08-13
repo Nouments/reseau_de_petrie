@@ -12,8 +12,6 @@ import {
   Minus,
   Trash2,
   Share2,
-  Play,
-  Pause,
   Settings2,
   FileText,
   Type,
@@ -61,19 +59,15 @@ const TRANSITION_HEIGHT = 20;
 
 const getInitialElements = (): Map<string, NetworkElement> => {
   const initialElements = new Map<string, NetworkElement>();
-  initialElements.set('p1', { id: 'p1', type: 'place', position: { x: 150, y: 150 }, name: 'Client Ready', tokens: 1 });
-  initialElements.set('p2', { id: 'p2', type: 'place', position: { x: 350, y: 150 }, name: 'Discover Sent', tokens: 0 });
-  initialElements.set('p3', { id: 'p3', type: 'place', position: { x: 550, y: 150 }, name: 'Offer Received', tokens: 0 });
-  initialElements.set('p4', { id: 'p4', type: 'place', position: { x: 750, y: 150 }, name: 'Request Sent', tokens: 0 });
-  initialElements.set('p5', { id: 'p5', type: 'place', position: { x: 950, y: 150 }, name: 'Leased', tokens: 0 });
-  initialElements.set('p6', { id: 'p6', type: 'place', position: { x: 550, y: 350 }, name: 'Available IPs', tokens: 5 });
-  initialElements.set('p7', { id: 'p7', type: 'place', position: { x: 750, y: 350 }, name: 'Reserved IPs', tokens: 0 });
+  initialElements.set('p1', { id: 'p1', type: 'place', position: { x: 150, y: 150 }, name: 'Source Ready', tokens: 1 });
+  initialElements.set('p2', { id: 'p2', type: 'place', position: { x: 350, y: 150 }, name: 'Data at RP', tokens: 0 });
+  initialElements.set('p3', { id: 'p3', type: 'place', position: { x: 150, y: 350 }, name: 'Receiver Ready', tokens: 1 });
+  initialElements.set('p4', { id: 'p4', type: 'place', position: { x: 350, y: 350 }, name: 'Join at RP', tokens: 0 });
+  initialElements.set('p5', { id: 'p5', type: 'place', position: { x: 550, y: 250 }, name: 'Data Forwarded', tokens: 0 });
   
-  initialElements.set('t1', { id: 't1', type: 'transition', position: { x: 250, y: 150 }, name: 'Discover', isFirable: false });
-  initialElements.set('t2', { id: 't2', type: 'transition', position: { x: 450, y: 250 }, name: 'Offer', isFirable: false });
-  initialElements.set('t3', { id: 't3', type: 'transition', position: { x: 650, y: 150 }, name: 'Request', isFirable: false });
-  initialElements.set('t4', { id: 't4', type: 'transition', position: { x: 850, y: 250 }, name: 'Acknowledge', isFirable: false });
-  initialElements.set('t5', { id: 't5', type: 'transition', position: { x: 550, y: 50 }, name: 'New Client', isFirable: false });
+  initialElements.set('t1', { id: 't1', type: 'transition', position: { x: 250, y: 150 }, name: 'Send Data', isFirable: false });
+  initialElements.set('t2', { id: 't2', type: 'transition', position: { x: 250, y: 350 }, name: 'Send Join', isFirable: false });
+  initialElements.set('t3', { id: 't3', type: 'transition', position: { x: 450, y: 250 }, name: 'Forward Data', isFirable: false });
 
   return initialElements;
 }
@@ -82,17 +76,11 @@ const getInitialArcs = (): Map<string, Arc> => {
     const initialArcs = new Map<string, Arc>();
     initialArcs.set('a1', { id: 'a1', sourceId: 'p1', destinationId: 't1' });
     initialArcs.set('a2', { id: 'a2', sourceId: 't1', destinationId: 'p2' });
-    initialArcs.set('a3', { id: 'a3', sourceId: 'p2', destinationId: 't2' });
-    initialArcs.set('a4', { id: 'a4', sourceId: 'p6', destinationId: 't2' });
-    initialArcs.set('a5', { id: 'a5', sourceId: 't2', destinationId: 'p3' });
-    initialArcs.set('a6', { id: 'a6', sourceId: 't2', destinationId: 'p7' });
-    initialArcs.set('a7', { id: 'a7', sourceId: 'p3', destinationId: 't3' });
-    initialArcs.set('a8', { id: 'a8', sourceId: 't3', destinationId: 'p4' });
-    initialArcs.set('a9', { id: 'a9', sourceId: 'p4', destinationId: 't4' });
-    initialArcs.set('a10', { id: 'a10', sourceId: 'p7', destinationId: 't4' });
-    initialArcs.set('a11', { id: 'a11', sourceId: 't4', destinationId: 'p5' });
-    initialArcs.set('a12', { id: 'a12', sourceId: 'p5', destinationId: 't5' });
-    initialArcs.set('a13', { id: 'a13', sourceId: 't5', destinationId: 'p1' });
+    initialArcs.set('a3', { id: 'a3', sourceId: 'p3', destinationId: 't2' });
+    initialArcs.set('a4', { id: 'a4', sourceId: 't2', destinationId: 'p4' });
+    initialArcs.set('a5', { id: 'a5', sourceId: 'p2', destinationId: 't3' });
+    initialArcs.set('a6', { id: 'a6', sourceId: 'p4', destinationId: 't3' });
+    initialArcs.set('a7', { id: 'a7', sourceId: 't3', destinationId: 'p5' });
     return initialArcs;
 }
 
@@ -130,8 +118,7 @@ export default function PetriNetEditor() {
     pos: Point;
   } | null>(null);
   const [mousePosition, setMousePosition] = useState<Point>({ x: 0, y: 0 });
-  const simulationIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
+  
   const svgRef = useRef<SVGSVGElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -157,17 +144,6 @@ export default function PetriNetEditor() {
         newElements.set(id, { ...el, ...updates });
       }
       return newElements;
-    });
-  };
-
-  const updateArc = (id: string, updates: Partial<Arc>) => {
-    setArcs((prev) => {
-      const newArcs = new Map(prev);
-      const arc = newArcs.get(id);
-      if (arc) {
-        newArcs.set(id, { ...arc, ...updates });
-      }
-      return newArcs;
     });
   };
 
@@ -237,18 +213,18 @@ export default function PetriNetEditor() {
     });
   }
 
-  const runSimulationStep = useCallback(() => {
+  const runSimulationStep = () => {
     const firableTransitions = Array.from(elements.values()).filter(
         (el): el is Transition => el.type === 'transition' && el.isFirable
     );
 
     if (firableTransitions.length === 0) {
-        return; // Stop if nothing can be fired
+        return; 
     }
 
     const randomIndex = Math.floor(Math.random() * firableTransitions.length);
     fireTransition(firableTransitions[randomIndex].id);
-  }, [elements]);
+  };
 
 
   const getSVGPoint = (e: React.MouseEvent): Point => {
@@ -376,20 +352,78 @@ export default function PetriNetEditor() {
     setArcStartState(null);
     setEditingElementId(null);
   }
-
-  const ToolButton = ({ value, icon, label }: { value: Tool, icon: React.ReactNode, label: string }) => (
-    <Button
-      onClick={() => { setTool(value); if (value === 'arc') setArcStartState(null); }}
-      variant={tool === value ? "secondary" : "ghost"}
-      className="justify-start w-full"
-    >
-      {icon} {label}
-    </Button>
-  );
   
   const firableTransitionsCount = Array.from(elements.values()).filter(
     (el): el is Transition => el.type === 'transition' && el.isFirable
   ).length;
+
+  const getArcPath = (arc: Arc): string | null => {
+    const source = getElement(arc.sourceId);
+    const dest = getElement(arc.destinationId);
+    if (!source || !dest) return null;
+
+    const dx = dest.position.x - source.position.x;
+    const dy = dest.position.y - source.position.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist === 0) return null;
+
+    const angle = Math.atan2(dy, dx);
+    
+    let startX = source.position.x;
+    let startY = source.position.y;
+    let endX = dest.position.x;
+    let endY = dest.position.y;
+
+    if (source.type === 'place') {
+      startX += PLACE_RADIUS * Math.cos(angle);
+      startY += PLACE_RADIUS * Math.sin(angle);
+    } else {
+      const intersect = intersectRect(source.position, {w: TRANSITION_WIDTH, h: TRANSITION_HEIGHT}, dest.position);
+      if (intersect) {
+        startX = intersect.x;
+        startY = intersect.y;
+      }
+    }
+    
+    if (dest.type === 'place') {
+      endX -= PLACE_RADIUS * Math.cos(angle);
+      endY -= PLACE_RADIUS * Math.sin(angle);
+    } else {
+      const intersect = intersectRect(dest.position, {w: TRANSITION_WIDTH, h: TRANSITION_HEIGHT}, source.position);
+      if (intersect) {
+        endX = intersect.x;
+        endY = intersect.y;
+      }
+    }
+
+    return `M${startX},${startY} L${endX},${endY}`;
+  }
+
+  const intersectRect = (rectCenter: Point, rectSize: {w: number, h: number}, point: Point) => {
+      const dx = point.x - rectCenter.x;
+      const dy = point.y - rectCenter.y;
+      
+      const absDx = Math.abs(dx);
+      const absDy = Math.abs(dy);
+
+      if (absDx === 0 && absDy === 0) return rectCenter;
+      
+      const halfW = rectSize.w / 2;
+      const halfH = rectSize.h / 2;
+      
+      if (absDx / halfW > absDy / halfH) {
+          return {
+              x: rectCenter.x + halfW * Math.sign(dx),
+              y: rectCenter.y + dy * halfW / absDx
+          };
+      } else {
+          return {
+              x: rectCenter.x + dx * halfH / absDy,
+              y: rectCenter.y + halfH * Math.sign(dy)
+          };
+      }
+  };
+
 
   return (
     <SidebarProvider>
@@ -489,79 +523,32 @@ export default function PetriNetEditor() {
                 id="arrowhead"
                 markerWidth="10"
                 markerHeight="7"
-                refX="10"
+                refX="0"
                 refY="3.5"
                 orient="auto"
+                markerUnits="strokeWidth"
               >
                 <polygon points="0 0, 10 3.5, 0 7" className="fill-current text-muted-foreground" />
               </marker>
             </defs>
 
             {Array.from(arcs.values()).map((arc) => {
-              const source = getElement(arc.sourceId);
-              const dest = getElement(arc.destinationId);
-              if (!source || !dest) return null;
-              
-              const dx = dest.position.x - source.position.x;
-              const dy = dest.position.y - source.position.y;
-              const angle = Math.atan2(dy, dx);
-              
-              const sourceRadius = source.type === 'place' ? PLACE_RADIUS : Math.max(TRANSITION_WIDTH / 2, TRANSITION_HEIGHT / 2);
-              const destRadius = dest.type === 'place' ? PLACE_RADIUS : Math.max(TRANSITION_WIDTH / 2, TRANSITION_HEIGHT / 2);
-              
-              let startX = source.position.x;
-              let startY = source.position.y;
-              let endX = dest.position.x;
-              let endY = dest.position.y;
-
-              if (source.type === 'place') {
-                 startX += sourceRadius * Math.cos(angle);
-                 startY += sourceRadius * Math.sin(angle);
-              } else {
-                 const xBound = TRANSITION_WIDTH / 2;
-                 const yBound = TRANSITION_HEIGHT / 2;
-                 if (Math.abs(dx) > Math.abs(dy)) {
-                    startX += xBound * Math.sign(dx);
-                    startY += xBound * Math.tan(angle) * Math.sign(dx);
-                 } else {
-                    startX += yBound / Math.tan(angle) * Math.sign(dy);
-                    startY += yBound * Math.sign(dy);
-                 }
-              }
-
-              if (dest.type === 'place') {
-                  endX -= destRadius * Math.cos(angle);
-                  endY -= destRadius * Math.sin(angle);
-              } else {
-                 const xBound = TRANSITION_WIDTH / 2;
-                 const yBound = TRANSITION_HEIGHT / 2;
-                 if (Math.abs(dx) > Math.abs(dy)) {
-                    endX -= xBound * Math.sign(dx);
-                    endY -= xBound * Math.tan(angle) * Math.sign(dx);
-                 } else {
-                    endX -= yBound / Math.tan(angle) * Math.sign(dy);
-                    endY -= yBound * Math.sign(dy);
-                 }
-              }
-
-
+              const path = getArcPath(arc);
+              if (!path) return null;
               return (
-                <line
+                <path
                   key={arc.id}
-                  x1={startX}
-                  y1={startY}
-                  x2={endX}
-                  y2={endY}
-                  className="stroke-muted-foreground stroke-2"
+                  d={path}
+                  className="stroke-muted-foreground stroke-2 fill-none"
                   markerEnd="url(#arrowhead)"
                 />
               );
             })}
             
-            {arcStartState && (
+            {arcStartState && getElement(arcStartState.id) && (
                 <line
-                    x1={arcStartState.pos.x}
-                    y1={arcStartState.pos.y}
+                    x1={getElement(arcStartState.id)!.position.x}
+                    y1={getElement(arcStartState.id)!.position.y}
                     x2={mousePosition.x}
                     y2={mousePosition.y}
                     className="stroke-primary stroke-2 stroke-dashed"
@@ -637,5 +624,3 @@ export default function PetriNetEditor() {
     </SidebarProvider>
   );
 }
-
-    
