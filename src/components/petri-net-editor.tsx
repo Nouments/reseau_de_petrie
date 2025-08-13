@@ -286,6 +286,7 @@ export default function PetriNetEditor() {
             setArcs(prev => new Map(prev).set(newArc.id, newArc));
         }
         setArcStartState(null);
+        setTool('select');
       }
     }
     setSelectedElementId(id);
@@ -593,7 +594,7 @@ export default function PetriNetEditor() {
                 )}
                 <text
                   textAnchor="middle"
-                  y={el.type === 'place' ? PLACE_RADIUS + 15 : TRANSITION_HEIGHT / 2 + 15}
+                  y={el.type === 'place' ? PLACE_RADIUS + 20 : (TRANSITION_HEIGHT / 2) + 20}
                   className="fill-current select-none text-sm pointer-events-none"
                 >
                   {editingElementId !== el.id && el.name}
@@ -612,8 +613,8 @@ export default function PetriNetEditor() {
                 className="absolute text-center bg-background border border-primary rounded-md px-1"
                 style={{
                   left: getElement(editingElementId)!.position.x,
-                  top: getElement(editingElementId)!.position.y + (getElement(editingElementId)!.type === 'place' ? PLACE_RADIUS + 5 : TRANSITION_HEIGHT / 2 + 5),
-                  width: 80,
+                  top: getElement(editingElementId)!.position.y + (getElement(editingElementId)!.type === 'place' ? PLACE_RADIUS + 15 : TRANSITION_HEIGHT / 2 + 15),
+                  width: 120,
                   transform: 'translateX(-50%)',
                 }}
               />
@@ -624,3 +625,5 @@ export default function PetriNetEditor() {
     </SidebarProvider>
   );
 }
+
+    
