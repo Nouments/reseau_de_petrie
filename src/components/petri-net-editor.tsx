@@ -61,28 +61,42 @@ const TRANSITION_HEIGHT = 20;
 
 const getInitialElements = (): Map<string, NetworkElement> => {
   const initialElements = new Map<string, NetworkElement>();
-  initialElements.set('p1', { id: 'p1', type: 'place', position: { x: 150, y: 250 }, name: 'Ready to Ping', tokens: 1 });
-  initialElements.set('p2', { id: 'p2', type: 'place', position: { x: 350, y: 150 }, name: 'Request Sent', tokens: 0 });
-  initialElements.set('p3', { id: 'p3', type: 'place', position: { x: 350, y: 350 }, name: 'Reply Received', tokens: 0 });
-  initialElements.set('p4', { id: 'p4', type: 'place', position: { x: 550, y: 250 }, name: 'Target Ready', tokens: 1 });
-  
-  initialElements.set('t1', { id: 't1', type: 'transition', position: { x: 250, y: 150 }, name: 'Send Echo Request', isFirable: false });
-  initialElements.set('t2', { id: 't2', type: 'transition', position: { x: 450, y: 250 }, name: 'Send Echo Reply', isFirable: false });
-  initialElements.set('t3', { id: 't3', type: 'transition', position: { x: 250, y: 350 }, name: 'Process Reply', isFirable: false });
+  // Client States
+  initialElements.set('p1', { id: 'p1', type: 'place', position: { x: 100, y: 150 }, name: 'Client: CLOSED', tokens: 1 });
+  initialElements.set('p2', { id: 'p2', type: 'place', position: { x: 300, y: 150 }, name: 'Client: SYN-SENT', tokens: 0 });
+  initialElements.set('p3', { id: 'p3', type: 'place', position: { x: 500, y: 150 }, name: 'Client: ESTABLISHED', tokens: 0 });
+
+  // Server States
+  initialElements.set('p4', { id: 'p4', type: 'place', position: { x: 100, y: 350 }, name: 'Server: LISTEN', tokens: 1 });
+  initialElements.set('p5', { id: 'p5', type: 'place', position: { x: 300, y: 350 }, name: 'Server: SYN-RCVD', tokens: 0 });
+  initialElements.set('p6', { id: 'p6', type: 'place', position: { x: 500, y: 350 }, name: 'Server: ESTABLISHED', tokens: 0 });
+
+  // Transitions
+  initialElements.set('t1', { id: 't1', type: 'transition', position: { x: 200, y: 250 }, name: 'Send SYN', isFirable: false });
+  initialElements.set('t2', { id: 't2', type: 'transition', position: { x: 400, y: 250 }, name: 'Send SYN-ACK / ACK', isFirable: false });
+  initialElements.set('t3', { id: 't3', type: 'transition', position: { x: 600, y: 250 }, name: 'Connection Established', isFirable: false });
 
   return initialElements;
 }
 
 const getInitialArcs = (): Map<string, Arc> => {
     const initialArcs = new Map<string, Arc>();
+    // Step 1: Client sends SYN
     initialArcs.set('a1', { id: 'a1', sourceId: 'p1', destinationId: 't1' });
-    initialArcs.set('a2', { id: 'a2', sourceId: 't1', destinationId: 'p2' });
-    initialArcs.set('a3', { id: 'a3', sourceId: 'p2', destinationId: 't2' });
-    initialArcs.set('a4', { id: 'a4', sourceId: 'p4', destinationId: 't2' });
-    initialArcs.set('a5', { id: 'a5', sourceId: 't2', destinationId: 'p3' });
-    initialArcs.set('a6', { id: 'a6', sourceId: 't2', destinationId: 'p4' }); // Target becomes ready again
-    initialArcs.set('a7', { id: 'a7', sourceId: 'p3', destinationId: 't3' });
-    initialArcs.set('a8', { id: 'a8', sourceId: 't3', destinationId: 'p1' }); // Loop back
+    initialArcs.set('a2', { id: 'a2', sourceId: 'p4', destinationId: 't1' });
+    initialArcs.set('a3', { id: 'a3', sourceId: 't1', destinationId: 'p2' }); // Client is now SYN-SENT
+    
+    // Step 2: Server receives SYN, sends SYN-ACK
+    initialArcs.set('a4', { id: 'a4', sourceId: 't1', destinationId: 'p5' }); // Server is now SYN-RCVD
+
+    // Step 3: Client receives SYN-ACK, sends ACK
+    initialArcs.set('a5', { id: 'a5', sourceId: 'p2', destinationId: 't2' });
+    initialArcs.set('a6', { id: 'a6', sourceId: 'p5', destinationId: 't2' });
+    initialArcs.set('a7', { id: 'a7', sourceId: 't2', destinationId: 'p3' }); // Client is now ESTABLISHED
+    
+    // Step 4: Server receives ACK
+    initialArcs.set('a8', { id: 'a8', sourceId: 't2', destinationId: 'p6' }); // Server is now ESTABLISHED
+    
     return initialArcs;
 }
 
@@ -365,41 +379,51 @@ export default function PetriNetEditor() {
     const dest = getElement(arc.destinationId);
     if (!source || !dest) return null;
 
-    const dx = dest.position.x - source.position.x;
-    const dy = dest.position.y - source.position.y;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-    if (dist === 0) return null;
-
-    const angle = Math.atan2(dy, dx);
-    
-    let startX = source.position.x;
-    let startY = source.position.y;
-    let endX = dest.position.x;
-    let endY = dest.position.y;
+    let startPoint: Point;
+    let endPoint: Point;
 
     if (source.type === 'place') {
-      startX += PLACE_RADIUS * Math.cos(angle);
-      startY += PLACE_RADIUS * Math.sin(angle);
-    } else {
-      const intersect = intersectRect(source.position, {w: TRANSITION_WIDTH, h: TRANSITION_HEIGHT}, dest.position);
-      if (intersect) {
-        startX = intersect.x;
-        startY = intersect.y;
-      }
-    }
-    
-    if (dest.type === 'place') {
-      endX -= PLACE_RADIUS * Math.cos(angle);
-      endY -= PLACE_RADIUS * Math.sin(angle);
-    } else {
-      const intersect = intersectRect(dest.position, {w: TRANSITION_WIDTH, h: TRANSITION_HEIGHT}, source.position);
-      if (intersect) {
-        endX = intersect.x;
-        endY = intersect.y;
-      }
+        const dx = dest.position.x - source.position.x;
+        const dy = dest.position.y - source.position.y;
+        const angle = Math.atan2(dy, dx);
+        startPoint = {
+            x: source.position.x + PLACE_RADIUS * Math.cos(angle),
+            y: source.position.y + PLACE_RADIUS * Math.sin(angle),
+        };
+    } else { // transition
+        startPoint = {
+            x: source.position.x,
+            y: source.position.y,
+        };
     }
 
-    return `M${startX},${startY} L${endX},${endY}`;
+    if (dest.type === 'place') {
+        const dx = source.position.x - dest.position.x;
+        const dy = source.position.y - dest.position.y;
+        const angle = Math.atan2(dy, dx);
+        endPoint = {
+            x: dest.position.x + PLACE_RADIUS * Math.cos(angle),
+            y: dest.position.y + PLACE_RADIUS * Math.sin(angle),
+        };
+    } else { // transition
+        endPoint = {
+            x: dest.position.x,
+            y: dest.position.y,
+        };
+    }
+    
+    // Adjust for transition boundaries
+    if (source.type === 'transition') {
+        const intersect = intersectRect(source.position, {w: TRANSITION_WIDTH, h: TRANSITION_HEIGHT}, endPoint);
+        if (intersect) startPoint = intersect;
+    }
+    if (dest.type === 'transition') {
+        const intersect = intersectRect(dest.position, {w: TRANSITION_WIDTH, h: TRANSITION_HEIGHT}, startPoint);
+        if(intersect) endPoint = intersect;
+    }
+
+
+    return `M${startPoint.x},${startPoint.y} L${endPoint.x},${endPoint.y}`;
   }
 
   const intersectRect = (rectCenter: Point, rectSize: {w: number, h: number}, point: Point) => {
@@ -409,22 +433,24 @@ export default function PetriNetEditor() {
       const absDx = Math.abs(dx);
       const absDy = Math.abs(dy);
 
-      if (absDx === 0 && absDy === 0) return rectCenter;
+      if (absDx < 0.01 && absDy < 0.01) return rectCenter;
       
       const halfW = rectSize.w / 2;
       const halfH = rectSize.h / 2;
-      
-      if (absDx / halfW > absDy / halfH) {
-          return {
-              x: rectCenter.x + halfW * Math.sign(dx),
-              y: rectCenter.y + dy * halfW / absDx
-          };
+
+      let sx, sy;
+
+      if (absDy * halfW > absDx * halfH) {
+        // top or bottom edge
+        sx = dx * halfH / absDy;
+        sy = halfH * Math.sign(dy);
       } else {
-          return {
-              x: rectCenter.x + dx * halfH / absDy,
-              y: rectCenter.y + halfH * Math.sign(dy)
-          };
+        // left or right edge
+        sx = halfW * Math.sign(dx);
+        sy = dy * halfW / absDx;
       }
+      
+      return { x: rectCenter.x + sx, y: rectCenter.y + sy };
   };
 
 
@@ -556,7 +582,7 @@ export default function PetriNetEditor() {
 
             {Array.from(arcs.values()).map((arc) => {
               const path = getArcPath(arc);
-              if (!path) return null;
+              if (!path || path.includes("NaN")) return null;
               return (
                 <path
                   key={arc.id}
