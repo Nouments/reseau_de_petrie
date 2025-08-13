@@ -30,11 +30,46 @@ const PLACE_RADIUS = 30;
 const TRANSITION_WIDTH = 60;
 const TRANSITION_HEIGHT = 20;
 
+const getInitialElements = (): Map<string, NetworkElement> => {
+  const initialElements = new Map<string, NetworkElement>();
+  initialElements.set('p1', { id: 'p1', type: 'place', position: { x: 100, y: 150 }, name: 'Client Ready', tokens: 1 });
+  initialElements.set('p2', { id: 'p2', type: 'place', position: { x: 300, y: 150 }, name: 'Discover Sent', tokens: 0 });
+  initialElements.set('p3', { id: 'p3', type: 'place', position: { x: 500, y: 150 }, name: 'Offer Received', tokens: 0 });
+  initialElements.set('p4', { id: 'p4', type: 'place', position: { x: 700, y: 150 }, name: 'Request Sent', tokens: 0 });
+  initialElements.set('p5', { id: 'p5', type: 'place', position: { x: 900, y: 150 }, name: 'Leased', tokens: 0 });
+  initialElements.set('p6', { id: 'p6', type: 'place', position: { x: 500, y: 350 }, name: 'Available IPs', tokens: 5 });
+  initialElements.set('p7', { id: 'p7', type: 'place', position: { x: 700, y: 350 }, name: 'Reserved IPs', tokens: 0 });
+  
+  initialElements.set('t1', { id: 't1', type: 'transition', position: { x: 200, y: 150 }, name: 'Discover', isFirable: false });
+  initialElements.set('t2', { id: 't2', type: 'transition', position: { x: 400, y: 250 }, name: 'Offer', isFirable: false });
+  initialElements.set('t3', { id: 't3', type: 'transition', position: { x: 600, y: 150 }, name: 'Request', isFirable: false });
+  initialElements.set('t4', { id: 't4', type: 'transition', position: { x: 800, y: 250 }, name: 'Acknowledge', isFirable: false });
+
+  return initialElements;
+}
+
+const getInitialArcs = (): Map<string, Arc> => {
+    const initialArcs = new Map<string, Arc>();
+    initialArcs.set('a1', { id: 'a1', sourceId: 'p1', destinationId: 't1' });
+    initialArcs.set('a2', { id: 'a2', sourceId: 't1', destinationId: 'p2' });
+    initialArcs.set('a3', { id: 'a3', sourceId: 'p2', destinationId: 't2' });
+    initialArcs.set('a4', { id: 'a4', sourceId: 'p6', destinationId: 't2' });
+    initialArcs.set('a5', { id: 'a5', sourceId: 't2', destinationId: 'p3' });
+    initialArcs.set('a6', { id: 'a6', sourceId: 't2', destinationId: 'p7' });
+    initialArcs.set('a7', { id: 'a7', sourceId: 'p3', destinationId: 't3' });
+    initialArcs.set('a8', { id: 'a8', sourceId: 't3', destinationId: 'p4' });
+    initialArcs.set('a9', { id: 'a9', sourceId: 'p4', destinationId: 't4' });
+    initialArcs.set('a10', { id: 'a10', sourceId: 'p7', destinationId: 't4' });
+    initialArcs.set('a11', { id: 'a11', sourceId: 't4', destinationId: 'p5' });
+    return initialArcs;
+}
+
+
 export default function PetriNetEditor() {
   const [elements, setElements] = useState<Map<string, NetworkElement>>(
-    new Map()
+    getInitialElements
   );
-  const [arcs, setArcs] = useState<Map<string, Arc>>(new Map());
+  const [arcs, setArcs] = useState<Map<string, Arc>>(getInitialArcs);
   const [tool, setTool] = useState<Tool>("select");
   const [selectedElementId, setSelectedElementId] = useState<string | null>(
     null
