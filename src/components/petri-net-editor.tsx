@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { Place, Transition, Arc, Point } from "@/types/petri";
@@ -11,6 +12,8 @@ import {
   Minus,
   Trash2,
   Share2,
+  Play,
+  Pause,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -88,6 +91,8 @@ export default function PetriNetEditor() {
     pos: Point;
   } | null>(null);
   const [mousePosition, setMousePosition] = useState<Point>({ x: 0, y: 0 });
+  const [isSimulating, setIsSimulating] = useState(false);
+  const simulationIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const svgRef = useRef<SVGSVGElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -183,6 +188,39 @@ export default function PetriNetEditor() {
         return newElements;
     });
   }
+
+  const runSimulationStep = useCallback(() => {
+    const firableTransitions = Array.from(elements.values()).filter(
+        (el): el is Transition => el.type === 'transition' && el.isFirable
+    );
+
+    if (firableTransitions.length === 0) {
+        setIsSimulating(false); // Stop simulation if nothing can be fired
+        return;
+    }
+
+    // Fire a random firable transition
+    const randomIndex = Math.floor(Math.random() * firableTransitions.length);
+    fireTransition(firableTransitions[randomIndex].id);
+  }, [elements]);
+
+  useEffect(() => {
+    if (isSimulating) {
+        simulationIntervalRef.current = setInterval(runSimulationStep, 1000);
+    } else {
+        if (simulationIntervalRef.current) {
+            clearInterval(simulationIntervalRef.current);
+            simulationIntervalRef.current = null;
+        }
+    }
+
+    return () => {
+        if (simulationIntervalRef.current) {
+            clearInterval(simulationIntervalRef.current);
+        }
+    };
+  }, [isSimulating, runSimulationStep]);
+
 
   const getSVGPoint = (e: React.MouseEvent): Point => {
     const pt = svgRef.current?.createSVGPoint();
@@ -303,6 +341,7 @@ export default function PetriNetEditor() {
   }
 
   const clearAll = () => {
+    setIsSimulating(false);
     setElements(new Map());
     setArcs(new Map());
     setSelectedElementId(null);
@@ -317,7 +356,10 @@ export default function PetriNetEditor() {
             <Share2 className="text-primary" />
             <h1 className="text-xl font-bold text-primary">PetriPainter</h1>
         </div>
-        <Button onClick={clearAll} variant="destructive" size="sm"><Trash2 className="mr-2 h-4 w-4" /> Clear Canvas</Button>
+        <div className="flex items-center gap-2">
+            {isSimulating && <div className="flex items-center gap-2 text-sm text-primary animate-pulse"><div className="w-2 h-2 rounded-full bg-primary" />Simulating...</div>}
+            <Button onClick={clearAll} variant="destructive" size="sm"><Trash2 className="mr-2 h-4 w-4" /> Clear Canvas</Button>
+        </div>
       </header>
       <div className="flex flex-1">
         <aside className="w-64 p-4 border-r">
@@ -336,6 +378,23 @@ export default function PetriNetEditor() {
           
           <Separator className="my-4" />
           
+          <Card>
+            <CardHeader>
+                <CardTitle>Simulation</CardTitle>
+                <CardDescription>Control the execution of the model.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex items-center gap-2">
+                <Button onClick={() => setIsSimulating(true)} disabled={isSimulating} className="flex-1">
+                    <Play className="mr-2 h-4 w-4" /> Start
+                </Button>
+                <Button onClick={() => setIsSimulating(false)} disabled={!isSimulating} variant="outline" className="flex-1">
+                    <Pause className="mr-2 h-4 w-4" /> Stop
+                </Button>
+            </CardContent>
+          </Card>
+
+          <Separator className="my-4" />
+
           {selectedElement?.type === 'place' && (
              <Card>
                 <CardHeader>
