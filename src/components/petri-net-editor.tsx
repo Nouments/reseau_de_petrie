@@ -61,41 +61,41 @@ const TRANSITION_HEIGHT = 20;
 
 const getInitialElements = (): Map<string, NetworkElement> => {
   const initialElements = new Map<string, NetworkElement>();
-  // Client States
-  initialElements.set('p1', { id: 'p1', type: 'place', position: { x: 100, y: 150 }, name: 'Client: CLOSED', tokens: 1 });
-  initialElements.set('p2', { id: 'p2', type: 'place', position: { x: 300, y: 150 }, name: 'Client: SYN-SENT', tokens: 0 });
-  initialElements.set('p3', { id: 'p3', type: 'place', position: { x: 500, y: 150 }, name: 'Client: ESTABLISHED', tokens: 0 });
+  // Host A States
+  initialElements.set('p1', { id: 'p1', type: 'place', position: { x: 150, y: 150 }, name: 'Host A: Ready to Send', tokens: 1 });
+  initialElements.set('p2', { id: 'p2', type: 'place', position: { x: 350, y: 150 }, name: 'Host A: Waiting for Reply', tokens: 0 });
+  initialElements.set('p3', { id: 'p3', type: 'place', position: { x: 550, y: 150 }, name: 'Host A: ARP Cache Resolved', tokens: 0 });
 
-  // Server States
-  initialElements.set('p4', { id: 'p4', type: 'place', position: { x: 100, y: 350 }, name: 'Server: LISTEN', tokens: 1 });
-  initialElements.set('p5', { id: 'p5', type: 'place', position: { x: 300, y: 350 }, name: 'Server: SYN-RCVD', tokens: 0 });
-  initialElements.set('p6', { id: 'p6', type: 'place', position: { x: 500, y: 350 }, name: 'Server: ESTABLISHED', tokens: 0 });
-
+  // Host B States
+  initialElements.set('p4', { id: 'p4', type: 'place', position: { x: 150, y: 350 }, name: 'Host B: Listening', tokens: 1 });
+  initialElements.set('p5', { id: 'p5', type: 'place', position: { x: 350, y: 350 }, name: 'Host B: Request Received', tokens: 0 });
+  
   // Transitions
-  initialElements.set('t1', { id: 't1', type: 'transition', position: { x: 200, y: 250 }, name: 'Send SYN', isFirable: false });
-  initialElements.set('t2', { id: 't2', type: 'transition', position: { x: 400, y: 250 }, name: 'Send SYN-ACK / ACK', isFirable: false });
-  initialElements.set('t3', { id: 't3', type: 'transition', position: { x: 600, y: 250 }, name: 'Connection Established', isFirable: false });
-
+  initialElements.set('t1', { id: 't1', type: 'transition', position: { x: 250, y: 250 }, name: 'Broadcast ARP Request', isFirable: false });
+  initialElements.set('t2', { id: 't2', type: 'transition', position: { x: 450, y: 250 }, name: 'Send ARP Reply', isFirable: false });
+  initialElements.set('t3', { id: 't3', type: 'transition', position: { x: 650, y: 250 }, name: 'Communication Ready', isFirable: false });
+  
   return initialElements;
 }
 
 const getInitialArcs = (): Map<string, Arc> => {
     const initialArcs = new Map<string, Arc>();
-    // Step 1: Client sends SYN
+    // Host A sends ARP Request
     initialArcs.set('a1', { id: 'a1', sourceId: 'p1', destinationId: 't1' });
-    initialArcs.set('a2', { id: 'a2', sourceId: 'p4', destinationId: 't1' });
-    initialArcs.set('a3', { id: 'a3', sourceId: 't1', destinationId: 'p2' }); // Client is now SYN-SENT
-    
-    // Step 2: Server receives SYN, sends SYN-ACK
-    initialArcs.set('a4', { id: 'a4', sourceId: 't1', destinationId: 'p5' }); // Server is now SYN-RCVD
+    initialArcs.set('a2', { id: 'a2', sourceId: 'p4', destinationId: 't1' }); // Host B must be listening
+    initialArcs.set('a3', { id: 'a3', sourceId: 't1', destinationId: 'p2' }); // Host A is now waiting
+    initialArcs.set('a4', { id: 'a4', sourceId: 't1', destinationId: 'p5' }); // Host B received request
 
-    // Step 3: Client receives SYN-ACK, sends ACK
-    initialArcs.set('a5', { id: 'a5', sourceId: 'p2', destinationId: 't2' });
-    initialArcs.set('a6', { id: 'a6', sourceId: 'p5', destinationId: 't2' });
-    initialArcs.set('a7', { id: 'a7', sourceId: 't2', destinationId: 'p3' }); // Client is now ESTABLISHED
+    // Host B sends ARP Reply
+    initialArcs.set('a5', { id: 'a5', sourceId: 'p5', destinationId: 't2' });
+    initialArcs.set('a6', { id: 'a6', sourceId: 't2', destinationId: 'p4' }); // Host B goes back to listening
     
-    // Step 4: Server receives ACK
-    initialArcs.set('a8', { id: 'a8', sourceId: 't2', destinationId: 'p6' }); // Server is now ESTABLISHED
+    // Host A receives ARP Reply
+    initialArcs.set('a7', { id: 'a7', sourceId: 'p2', destinationId: 't2' }); // Host A must be waiting to process reply
+    initialArcs.set('a8', { id: 'a8', sourceId: 't2', destinationId: 'p3' }); // Host A cache is now resolved
+    
+    // Communication can now happen
+    initialArcs.set('a9', { id: 'a9', sourceId: 'p3', destinationId: 't3' });
     
     return initialArcs;
 }
