@@ -73,6 +73,7 @@ const getInitialElements = (): Map<string, NetworkElement> => {
   initialElements.set('t2', { id: 't2', type: 'transition', position: { x: 450, y: 250 }, name: 'Offer', isFirable: false });
   initialElements.set('t3', { id: 't3', type: 'transition', position: { x: 650, y: 150 }, name: 'Request', isFirable: false });
   initialElements.set('t4', { id: 't4', type: 'transition', position: { x: 850, y: 250 }, name: 'Acknowledge', isFirable: false });
+  initialElements.set('t5', { id: 't5', type: 'transition', position: { x: 550, y: 50 }, name: 'New Client', isFirable: false });
 
   return initialElements;
 }
@@ -90,6 +91,8 @@ const getInitialArcs = (): Map<string, Arc> => {
     initialArcs.set('a9', { id: 'a9', sourceId: 'p4', destinationId: 't4' });
     initialArcs.set('a10', { id: 'a10', sourceId: 'p7', destinationId: 't4' });
     initialArcs.set('a11', { id: 'a11', sourceId: 't4', destinationId: 'p5' });
+    initialArcs.set('a12', { id: 'a12', sourceId: 'p5', destinationId: 't5' });
+    initialArcs.set('a13', { id: 'a13', sourceId: 't5', destinationId: 'p1' });
     return initialArcs;
 }
 
@@ -517,15 +520,12 @@ export default function PetriNetEditor() {
               } else {
                  const xBound = TRANSITION_WIDTH / 2;
                  const yBound = TRANSITION_HEIGHT / 2;
-                 const tanAngle = Math.tan(angle);
-                 const xIntersect = Math.abs(yBound / tanAngle);
-                 const yIntersect = Math.abs(xBound * tanAngle);
-                 if (xIntersect < xBound) {
-                    startX += xIntersect * Math.sign(dx);
-                    startY += yBound * Math.sign(dy);
-                 } else {
+                 if (Math.abs(dx) > Math.abs(dy)) {
                     startX += xBound * Math.sign(dx);
-                    startY += yIntersect * Math.sign(dy);
+                    startY += xBound * Math.tan(angle) * Math.sign(dx);
+                 } else {
+                    startX += yBound / Math.tan(angle) * Math.sign(dy);
+                    startY += yBound * Math.sign(dy);
                  }
               }
 
@@ -535,15 +535,12 @@ export default function PetriNetEditor() {
               } else {
                  const xBound = TRANSITION_WIDTH / 2;
                  const yBound = TRANSITION_HEIGHT / 2;
-                 const tanAngle = Math.tan(angle);
-                 const xIntersect = Math.abs(yBound / tanAngle);
-                 const yIntersect = Math.abs(xBound * tanAngle);
-                 if (xIntersect < xBound) {
-                    endX -= xIntersect * Math.sign(dx);
-                    endY -= yBound * Math.sign(dy);
-                 } else {
+                 if (Math.abs(dx) > Math.abs(dy)) {
                     endX -= xBound * Math.sign(dx);
-                    endY -= yIntersect * Math.sign(dy);
+                    endY -= xBound * Math.tan(angle) * Math.sign(dx);
+                 } else {
+                    endX -= yBound / Math.tan(angle) * Math.sign(dy);
+                    endY -= yBound * Math.sign(dy);
                  }
               }
 
@@ -640,3 +637,5 @@ export default function PetriNetEditor() {
     </SidebarProvider>
   );
 }
+
+    
