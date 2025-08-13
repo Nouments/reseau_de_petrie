@@ -18,6 +18,7 @@ import {
   Hash,
   RefreshCw,
   StepForward,
+  ListTree,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -49,6 +50,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
   } from "@/components/ui/dropdown-menu";
+import { ScrollArea } from "./ui/scroll-area";
 
 type Tool = "select" | "place" | "transition" | "arc";
 type NetworkElement = Place | Transition;
@@ -436,70 +438,89 @@ export default function PetriNetEditor() {
                     <h1 className="text-xl font-bold text-primary">PetriPainter</h1>
                 </div>
             </SidebarHeader>
-            <SidebarContent className="p-0">
-                <SidebarGroup>
-                    <SidebarGroupLabel className="flex items-center"><Settings2 className="mr-2"/>Controls</SidebarGroupLabel>
-                    <div className="grid gap-2">
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="outline" className="w-full justify-start">
-                                    <MousePointer className="mr-2 h-4 w-4" />
-                                    {tool.charAt(0).toUpperCase() + tool.slice(1)} Tool
+            <SidebarContent>
+                <ScrollArea className="h-full">
+                    <SidebarGroup>
+                        <SidebarGroupLabel className="flex items-center"><Settings2 className="mr-2"/>Controls</SidebarGroupLabel>
+                        <div className="grid gap-2 p-2">
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="outline" className="w-full justify-start">
+                                        <MousePointer className="mr-2 h-4 w-4" />
+                                        {tool.charAt(0).toUpperCase() + tool.slice(1)} Tool
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent>
+                                    <DropdownMenuItem onSelect={() => { setTool("select"); }}>
+                                        <MousePointer className="mr-2 h-4 w-4" /> Select & Move
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onSelect={() => { setTool("place"); }}>
+                                        <Circle className="mr-2 h-4 w-4" /> Add Place
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onSelect={() => { setTool("transition"); }}>
+                                        <RectangleHorizontal className="mr-2 h-4 w-4" /> Add Transition
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onSelect={() => { setTool("arc"); setArcStartState(null); }}>
+                                        <ArrowRight className="mr-2 h-4 w-4" /> Connect (Arc)
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+
+                            <div className="flex items-center gap-2">
+                                <Button onClick={runSimulationStep} disabled={firableTransitionsCount === 0} className="flex-1">
+                                    <StepForward className="mr-2 h-4 w-4" /> Step
                                 </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent>
-                                <DropdownMenuItem onSelect={() => { setTool("select"); }}>
-                                    <MousePointer className="mr-2 h-4 w-4" /> Select & Move
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onSelect={() => { setTool("place"); }}>
-                                     <Circle className="mr-2 h-4 w-4" /> Add Place
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onSelect={() => { setTool("transition"); }}>
-                                    <RectangleHorizontal className="mr-2 h-4 w-4" /> Add Transition
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onSelect={() => { setTool("arc"); setArcStartState(null); }}>
-                                    <ArrowRight className="mr-2 h-4 w-4" /> Connect (Arc)
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-
-                        <div className="flex items-center gap-2">
-                            <Button onClick={runSimulationStep} disabled={firableTransitionsCount === 0} className="flex-1">
-                                <StepForward className="mr-2 h-4 w-4" /> Step
-                            </Button>
-                            <Button onClick={resetDiagram} variant="outline" size="icon">
-                                <RefreshCw className="h-4 w-4" />
-                            </Button>
+                                <Button onClick={resetDiagram} variant="outline" size="icon">
+                                    <RefreshCw className="h-4 w-4" />
+                                </Button>
+                            </div>
                         </div>
-                    </div>
-                </SidebarGroup>
+                    </SidebarGroup>
 
-                <Separator />
-                
-                <SidebarGroup>
-                    <SidebarGroupLabel className="flex items-center"><FileText className="mr-2"/>Properties</SidebarGroupLabel>
-                    <div className="p-2 space-y-4">
-                        {selectedElement ? (
-                            <>
-                                <PropertyDisplay label="Name" value={selectedElement.name} icon={<FileText size={16} />} />
-                                <PropertyDisplay label="Type" value={selectedElement.type} icon={<Type size={16} />} />
-                                {selectedElement.type === 'place' && (
-                                    <>
-                                        <Separator />
-                                        <PropertyDisplay label="Tokens" value={selectedElement.tokens} icon={<Hash size={16} />} />
-                                        <div className="flex items-center justify-between pt-2">
-                                            <Button size="icon" variant="outline" onClick={() => changeTokens(-1)}><Minus className="h-4 w-4" /></Button>
-                                            <span className="text-lg font-bold">{selectedElement.tokens}</span>
-                                            <Button size="icon" variant="outline" onClick={() => changeTokens(1)}><Plus className="h-4 w-4" /></Button>
-                                        </div>
-                                    </>
-                                )}
-                            </>
-                        ) : (
-                            <p className="text-sm text-muted-foreground text-center py-4">Select an element to see its properties.</p>
-                        )}
-                    </div>
-                </SidebarGroup>
+                    <Separator />
+                    
+                    <SidebarGroup>
+                        <SidebarGroupLabel className="flex items-center"><FileText className="mr-2"/>Properties</SidebarGroupLabel>
+                        <div className="p-2 space-y-4">
+                            {selectedElement ? (
+                                <>
+                                    <PropertyDisplay label="Name" value={selectedElement.name} icon={<FileText size={16} />} />
+                                    <PropertyDisplay label="Type" value={selectedElement.type} icon={<Type size={16} />} />
+                                    {selectedElement.type === 'place' && (
+                                        <>
+                                            <Separator />
+                                            <PropertyDisplay label="Tokens" value={selectedElement.tokens} icon={<Hash size={16} />} />
+                                            <div className="flex items-center justify-between pt-2">
+                                                <Button size="icon" variant="outline" onClick={() => changeTokens(-1)}><Minus className="h-4 w-4" /></Button>
+                                                <span className="text-lg font-bold">{selectedElement.tokens}</span>
+                                                <Button size="icon" variant="outline" onClick={() => changeTokens(1)}><Plus className="h-4 w-4" /></Button>
+                                            </div>
+                                        </>
+                                    )}
+                                </>
+                            ) : (
+                                <p className="text-sm text-muted-foreground text-center py-4">Select an element to see its properties.</p>
+                            )}
+                        </div>
+                    </SidebarGroup>
+
+                    <Separator />
+                    
+                    <SidebarGroup>
+                        <SidebarGroupLabel className="flex items-center"><ListTree className="mr-2"/>Network State</SidebarGroupLabel>
+                        <div className="p-2 space-y-2">
+                            {Array.from(elements.values())
+                                .filter((el): el is Place => el.type === 'place')
+                                .sort((a,b) => a.name.localeCompare(b.name))
+                                .map((place) => (
+                                <div key={place.id} className="flex items-center justify-between text-sm hover:bg-muted/50 p-1 rounded-md">
+                                    <span className="truncate text-muted-foreground">{place.name}</span>
+                                    <span className="font-bold bg-primary text-primary-foreground rounded-full h-6 w-6 flex items-center justify-center">{place.tokens}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </SidebarGroup>
+                </ScrollArea>
             </SidebarContent>
             <SidebarFooter>
                 <Button onClick={clearAll} variant="destructive" size="sm" className="w-full"><Trash2 className="mr-2 h-4 w-4" /> Clear Canvas</Button>
@@ -574,7 +595,7 @@ export default function PetriNetEditor() {
                     <text
                       textAnchor="middle"
                       dy="5"
-                      className="fill-current font-semibold select-none pointer-events-none"
+                      className="fill-current font-semibold select-none pointer-events-none text-lg"
                     >
                       {el.tokens > 0 && el.tokens}
                     </text>
@@ -625,5 +646,3 @@ export default function PetriNetEditor() {
     </SidebarProvider>
   );
 }
-
-    
