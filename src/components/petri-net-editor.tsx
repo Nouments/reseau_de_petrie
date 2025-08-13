@@ -59,15 +59,14 @@ const TRANSITION_HEIGHT = 20;
 
 const getInitialElements = (): Map<string, NetworkElement> => {
   const initialElements = new Map<string, NetworkElement>();
-  initialElements.set('p1', { id: 'p1', type: 'place', position: { x: 150, y: 150 }, name: 'Source Ready', tokens: 1 });
-  initialElements.set('p2', { id: 'p2', type: 'place', position: { x: 350, y: 150 }, name: 'Data at RP', tokens: 0 });
-  initialElements.set('p3', { id: 'p3', type: 'place', position: { x: 150, y: 350 }, name: 'Receiver Ready', tokens: 1 });
-  initialElements.set('p4', { id: 'p4', type: 'place', position: { x: 350, y: 350 }, name: 'Join at RP', tokens: 0 });
-  initialElements.set('p5', { id: 'p5', type: 'place', position: { x: 550, y: 250 }, name: 'Data Forwarded', tokens: 0 });
+  initialElements.set('p1', { id: 'p1', type: 'place', position: { x: 150, y: 250 }, name: 'Ready to Ping', tokens: 1 });
+  initialElements.set('p2', { id: 'p2', type: 'place', position: { x: 350, y: 150 }, name: 'Request Sent', tokens: 0 });
+  initialElements.set('p3', { id: 'p3', type: 'place', position: { x: 350, y: 350 }, name: 'Reply Received', tokens: 0 });
+  initialElements.set('p4', { id: 'p4', type: 'place', position: { x: 550, y: 250 }, name: 'Target Ready', tokens: 1 });
   
-  initialElements.set('t1', { id: 't1', type: 'transition', position: { x: 250, y: 150 }, name: 'Send Data', isFirable: false });
-  initialElements.set('t2', { id: 't2', type: 'transition', position: { x: 250, y: 350 }, name: 'Send Join', isFirable: false });
-  initialElements.set('t3', { id: 't3', type: 'transition', position: { x: 450, y: 250 }, name: 'Forward Data', isFirable: false });
+  initialElements.set('t1', { id: 't1', type: 'transition', position: { x: 250, y: 150 }, name: 'Send Echo Request', isFirable: false });
+  initialElements.set('t2', { id: 't2', type: 'transition', position: { x: 450, y: 250 }, name: 'Send Echo Reply', isFirable: false });
+  initialElements.set('t3', { id: 't3', type: 'transition', position: { x: 250, y: 350 }, name: 'Process Reply', isFirable: false });
 
   return initialElements;
 }
@@ -76,11 +75,12 @@ const getInitialArcs = (): Map<string, Arc> => {
     const initialArcs = new Map<string, Arc>();
     initialArcs.set('a1', { id: 'a1', sourceId: 'p1', destinationId: 't1' });
     initialArcs.set('a2', { id: 'a2', sourceId: 't1', destinationId: 'p2' });
-    initialArcs.set('a3', { id: 'a3', sourceId: 'p3', destinationId: 't2' });
-    initialArcs.set('a4', { id: 'a4', sourceId: 't2', destinationId: 'p4' });
-    initialArcs.set('a5', { id: 'a5', sourceId: 'p2', destinationId: 't3' });
-    initialArcs.set('a6', { id: 'a6', sourceId: 'p4', destinationId: 't3' });
-    initialArcs.set('a7', { id: 'a7', sourceId: 't3', destinationId: 'p5' });
+    initialArcs.set('a3', { id: 'a3', sourceId: 'p2', destinationId: 't2' });
+    initialArcs.set('a4', { id: 'a4', sourceId: 'p4', destinationId: 't2' });
+    initialArcs.set('a5', { id: 'a5', sourceId: 't2', destinationId: 'p3' });
+    initialArcs.set('a6', { id: 'a6', sourceId: 't2', destinationId: 'p4' }); // Target becomes ready again
+    initialArcs.set('a7', { id: 'a7', sourceId: 'p3', destinationId: 't3' });
+    initialArcs.set('a8', { id: 'a8', sourceId: 't3', destinationId: 'p1' }); // Loop back
     return initialArcs;
 }
 
