@@ -18,6 +18,7 @@ import {
   FileText,
   Type,
   Hash,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -104,9 +105,9 @@ const PropertyDisplay = ({ label, value, icon }: { label: string, value: string 
 
 export default function PetriNetEditor() {
   const [elements, setElements] = useState<Map<string, NetworkElement>>(
-    getInitialElements
+    new Map()
   );
-  const [arcs, setArcs] = useState<Map<string, Arc>>(getInitialArcs);
+  const [arcs, setArcs] = useState<Map<string, Arc>>(new Map());
   const [tool, setTool] = useState<Tool>("select");
   const [selectedElementId, setSelectedElementId] = useState<string | null>(
     null
@@ -134,6 +135,17 @@ export default function PetriNetEditor() {
   const getElement = (id: string | null) =>
     id ? elements.get(id) : undefined;
   const selectedElement = getElement(selectedElementId);
+
+  const resetDiagram = useCallback(() => {
+    setIsSimulating(false);
+    setElements(getInitialElements());
+    setArcs(getInitialArcs());
+    setSelectedElementId(null);
+  }, []);
+
+  useEffect(() => {
+    resetDiagram();
+  }, [resetDiagram]);
 
   const updateElement = (id: string, updates: Partial<NetworkElement>) => {
     setElements((prev) => {
@@ -433,8 +445,11 @@ export default function PetriNetEditor() {
                             <Button onClick={() => setIsSimulating(true)} disabled={isSimulating} className="flex-1">
                                 <Play className="mr-2 h-4 w-4" /> Start
                             </Button>
-                            <Button onClick={() => setIsSimulating(false)} disabled={!isSimulating} variant="outline" className="flex-1">
+                            <Button onClick={() => setIsSimulating(false)} disabled={!isSimulating} variant="secondary" className="flex-1">
                                 <Pause className="mr-2 h-4 w-4" /> Stop
+                            </Button>
+                             <Button onClick={resetDiagram} variant="outline" size="icon">
+                                <RefreshCw className="h-4 w-4" />
                             </Button>
                         </div>
                          {isSimulating && <div className="flex items-center justify-center gap-2 text-sm text-primary animate-pulse"><div className="w-2 h-2 rounded-full bg-primary" />Simulating...</div>}
@@ -632,7 +647,7 @@ export default function PetriNetEditor() {
                 onKeyDown={handleInputKeyDown}
                 className="absolute text-center bg-background border border-primary rounded-md px-1"
                 style={{
-                  left: getElement(editingElementId)!.position.x - 40,
+                  left: getElement(editingElementId)!.position.x,
                   top: getElement(editingElementId)!.position.y + (getElement(editingElementId)!.type === 'place' ? PLACE_RADIUS + 5 : TRANSITION_HEIGHT / 2 + 5),
                   width: 80,
                   transform: 'translateX(-50%)',
