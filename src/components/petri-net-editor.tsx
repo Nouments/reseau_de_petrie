@@ -70,6 +70,9 @@ const getInitialElements = (): Map<string, NetworkElement> => {
   initialElements.set('p4', { id: 'p4', type: 'place', position: { x: 400, y: 500 }, name: 'Host B: Listening', tokens: 1 });
   initialElements.set('p5', { id: 'p5', type: 'place', position: { x: 200, y: 350 }, name: 'Host B: Request Received', tokens: 0 });
   
+  // New place for loop
+  initialElements.set('p_loop', { id: 'p_loop', type: 'place', position: { x: 600, y: 50 }, name: 'Loop Trigger', tokens: 0 });
+
   // Transitions
   initialElements.set('t1', { id: 't1', type: 'transition', position: { x: 400, y: 200 }, name: 'Broadcast ARP Request', isFirable: false });
   initialElements.set('t2', { id: 't2', type: 'transition', position: { x: 400, y: 300 }, name: 'Send ARP Reply', isFirable: false });
@@ -101,8 +104,9 @@ const getInitialArcs = (): Map<string, Arc> => {
     initialArcs.set('a9', { id: 'a9', sourceId: 'p3', destinationId: 't3' });
 
     // Loop back
-    initialArcs.set('a10', { id: 'a10', sourceId: 't3', destinationId: 't4' }); // Placeholder to enable t4
-    initialArcs.set('a11', { id: 'a11', sourceId: 't4', destinationId: 'p1' });
+    initialArcs.set('a10', { id: 'a10', sourceId: 't3', destinationId: 'p_loop' });
+    initialArcs.set('a11', { id: 'a11', sourceId: 'p_loop', destinationId: 't4' });
+    initialArcs.set('a12', { id: 'a12', sourceId: 't4', destinationId: 'p1' });
     
     return initialArcs;
 }
@@ -145,7 +149,7 @@ export default function PetriNetEditor() {
   const svgRef = useRef<SVGSVGElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const getElement = (id: string | null) =>
+  const getElement = (id: string | null): NetworkElement | undefined =>
     id ? elements.get(id) : undefined;
   const selectedElement = getElement(selectedElementId);
 
@@ -180,16 +184,6 @@ export default function PetriNetEditor() {
         );
         let isFirable = incomingArcs.length > 0;
         for (const arc of incomingArcs) {
-            // A special case for t3 -> t4 link, which is just for enabling, not a real place
-            if (arc.sourceId === 't3' && el.id === 't4') {
-                const sourceTransition = getElement(arc.sourceId) as Transition;
-                // We base t4's firability on whether t3 was just fired (conceptually)
-                // For this simple model, we assume if t3 is NOT firable, it has been fired.
-                // This is a simplification. A better model would have a place in between.
-                 if(!sourceTransition.isFirable) { isFirable = true; } else { isFirable = false;}
-                 break;
-            }
-
           const source = getElement(arc.sourceId);
           if (source?.type !== "place" || source.tokens === 0) {
             isFirable = false;
@@ -321,8 +315,7 @@ export default function PetriNetEditor() {
       } else {
         const source = getElement(arcStartState.id);
         const destination = element;
-        // Allow transition -> transition for the loop logic
-        if(source && destination && source.id !== destination.id && (source.type !== destination.type || (source.type === 'transition' && destination.type === 'transition'))){
+        if(source && destination && source.id !== destination.id && source.type !== destination.type){
             const newArc: Arc = { id: `arc_${Date.now()}`, sourceId: source.id, destinationId: destination.id};
             setArcs(prev => new Map(prev).set(newArc.id, newArc));
         }
@@ -381,9 +374,10 @@ export default function PetriNetEditor() {
 
 
   const changeTokens = (amount: number) => {
-    if (selectedElement?.type === 'place') {
-        const newTokens = Math.max(0, selectedElement.tokens + amount);
-        updateElement(selectedElement.id, { tokens: newTokens });
+    const selected = getElement(selectedElementId);
+    if (selected?.type === 'place') {
+        const newTokens = Math.max(0, selected.tokens + amount);
+        updateElement(selected.id, { tokens: newTokens });
     }
   }
 
@@ -407,10 +401,11 @@ export default function PetriNetEditor() {
     let startPoint: Point;
     let endPoint: Point;
 
+    const dx = dest.position.x - source.position.x;
+    const dy = dest.position.y - source.position.y;
+    const angle = Math.atan2(dy, dx);
+
     if (source.type === 'place') {
-        const dx = dest.position.x - source.position.x;
-        const dy = dest.position.y - source.position.y;
-        const angle = Math.atan2(dy, dx);
         startPoint = {
             x: source.position.x + PLACE_RADIUS * Math.cos(angle),
             y: source.position.y + PLACE_RADIUS * Math.sin(angle),
@@ -423,12 +418,10 @@ export default function PetriNetEditor() {
     }
 
     if (dest.type === 'place') {
-        const dx = source.position.x - dest.position.x;
-        const dy = source.position.y - dest.position.y;
-        const angle = Math.atan2(dy, dx);
+        const reversedAngle = Math.atan2(-dy, -dx);
         endPoint = {
-            x: dest.position.x + PLACE_RADIUS * Math.cos(angle),
-            y: dest.position.y + PLACE_RADIUS * Math.sin(angle),
+            x: dest.position.x + PLACE_RADIUS * Math.cos(reversedAngle),
+            y: dest.position.y + PLACE_RADIUS * Math.sin(reversedAngle),
         };
     } else { // transition
         endPoint = {
@@ -447,16 +440,13 @@ export default function PetriNetEditor() {
     }
 
     // Custom path for the loopback arc for better visuals
-    if (arc.id === 'a10' || arc.id === 'a11') {
+    if (arc.id === 'a12') {
         const sx = source.position.x;
         const sy = source.position.y;
         const dx = dest.position.x;
         const dy = dest.position.y;
-        if(arc.id === 'a11') {
-           return `M${sx},${sy} C ${sx},${sy-50} ${dx},${dy-50} ${dx},${dy}`
-        }
+        return `M${sx},${sy} C ${sx},${sy-50} ${dx},${dy-50} ${dx},${dy}`
     }
-
 
     return `M${startPoint.x},${startPoint.y} L${endPoint.x},${endPoint.y}`;
   }
@@ -618,8 +608,6 @@ export default function PetriNetEditor() {
             {Array.from(arcs.values()).map((arc) => {
               const path = getArcPath(arc);
               if (!path || path.includes("NaN")) return null;
-              // Hide the conceptual arc between transitions
-              if (arc.id === 'a10') return null;
 
               return (
                 <path
@@ -710,3 +698,5 @@ export default function PetriNetEditor() {
     </SidebarProvider>
   );
 }
+
+    
