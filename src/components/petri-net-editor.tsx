@@ -61,52 +61,71 @@ const TRANSITION_HEIGHT = 20;
 
 const getInitialElements = (): Map<string, NetworkElement> => {
   const initialElements = new Map<string, NetworkElement>();
-  // Host A states
-  initialElements.set('p1', { id: 'p1', type: 'place', position: { x: 400, y: 100 }, name: 'Host A: Ready to Send', tokens: 1 });
-  initialElements.set('p2', { id: 'p2', type: 'place', position: { x: 200, y: 250 }, name: 'Host A: Waiting for Reply', tokens: 0 });
-  initialElements.set('p3', { id: 'p3', type: 'place', position: { x: 600, y: 250 }, name: 'Host A: ARP Cache Resolved', tokens: 0 });
+  // Client
+  initialElements.set('p1', { id: 'p1', type: 'place', position: { x: 100, y: 300 }, name: 'Client: Ready to Query', tokens: 1 });
+  initialElements.set('p2', { id: 'p2', type: 'place', position: { x: 800, y: 300 }, name: 'Client: IP Received', tokens: 0 });
+
+  // Recursive Resolver
+  initialElements.set('p3', { id: 'p3', type: 'place', position: { x: 250, y: 100 }, name: 'Resolver: Waiting for Query', tokens: 1 });
+  initialElements.set('p4', { id: 'p4', type: 'place', position: { x: 400, y: 100 }, name: 'Resolver: Querying Root', tokens: 0 });
+  initialElements.set('p5', { id: 'p5', type: 'place', position: { x: 550, y: 100 }, name: 'Resolver: Querying TLD', tokens: 0 });
+  initialElements.set('p6', { id: 'p6', type: 'place', position: { x: 700, y: 100 }, name: 'Resolver: Querying Authoritative', tokens: 0 });
+
+  // DNS Servers
+  initialElements.set('p7', { id: 'p7', type: 'place', position: { x: 400, y: 500 }, name: 'Root Server: Ready', tokens: 1 });
+  initialElements.set('p8', { id: 'p8', type: 'place', position: { x: 550, y: 500 }, name: 'TLD Server: Ready', tokens: 1 });
+  initialElements.set('p9', { id: 'p9', type: 'place', position: { x: 700, y: 500 }, name: 'Authoritative Server: Ready', tokens: 1 });
   
-  // Host B states
-  initialElements.set('p4', { id: 'p4', type: 'place', position: { x: 400, y: 500 }, name: 'Host B: Listening', tokens: 1 });
-  initialElements.set('p5', { id: 'p5', type: 'place', position: { x: 200, y: 350 }, name: 'Host B: Request Received', tokens: 0 });
-  
-  // New place for loop
-  initialElements.set('p_loop', { id: 'p_loop', type: 'place', position: { x: 600, y: 50 }, name: 'Loop Trigger', tokens: 0 });
+  // Final State & Loop
+  initialElements.set('p10', { id: 'p10', type: 'place', position: { x: 950, y: 300 }, name: 'Start New Query', tokens: 0 });
+
 
   // Transitions
-  initialElements.set('t1', { id: 't1', type: 'transition', position: { x: 400, y: 200 }, name: 'Broadcast ARP Request', isFirable: false });
-  initialElements.set('t2', { id: 't2', type: 'transition', position: { x: 400, y: 300 }, name: 'Send ARP Reply', isFirable: false });
-  initialElements.set('t3', { id: 't3', type: 'transition', position: { x: 600, y: 150 }, name: 'Communication Ready', isFirable: false });
-  initialElements.set('t4', { id: 't4', type: 'transition', position: { x: 400, y: 20 }, name: 'Send Another Packet', isFirable: false });
+  initialElements.set('t1', { id: 't1', type: 'transition', position: { x: 250, y: 300 }, name: 'Send Query to Resolver', isFirable: false });
+  initialElements.set('t2', { id: 't2', type: 'transition', position: { x: 400, y: 300 }, name: 'Root Server Responds', isFirable: false });
+  initialElements.set('t3', { id: 't3', type: 'transition', position: { x: 550, y: 300 }, name: 'TLD Server Responds', isFirable: false });
+  initialElements.set('t4', { id: 't4', type: 'transition', position: { x: 700, y: 300 }, name: 'Authoritative Responds', isFirable: false });
+  initialElements.set('t5', { id: 't5', type: 'transition', position: { x: 800, y: 100 }, name: 'Send IP to Client', isFirable: false });
+  initialElements.set('t6', { id: 't6', type: 'transition', position: { x: 950, y: 200 }, name: 'Loop Back', isFirable: false });
   
   return initialElements;
 }
 
 const getInitialArcs = (): Map<string, Arc> => {
     const initialArcs = new Map<string, Arc>();
-    // Host A sends ARP Request
+    // Client sends query
     initialArcs.set('a1', { id: 'a1', sourceId: 'p1', destinationId: 't1' });
-    initialArcs.set('a2', { id: 'a2', sourceId: 't1', destinationId: 'p2' }); 
-    initialArcs.set('a3', { id: 'a3', sourceId: 't1', destinationId: 'p5' });
+    initialArcs.set('a2', { id: 'a2', sourceId: 'p3', destinationId: 't1' });
+    initialArcs.set('a3', { id: 'a3', sourceId: 't1', destinationId: 'p4' });
 
-    // Host B must be listening to process request
-    initialArcs.set('a4', { id: 'a4', sourceId: 'p4', destinationId: 't1' });
+    // Resolver queries Root
+    initialArcs.set('a4', { id: 'a4', sourceId: 'p4', destinationId: 't2' });
+    initialArcs.set('a5', { id: 'a5', sourceId: 'p7', destinationId: 't2' });
+    initialArcs.set('a6', { id: 'a6', sourceId: 't2', destinationId: 'p5' });
+    initialArcs.set('a7', { id: 'a7', sourceId: 't2', destinationId: 'p7' }); // Root ready again
 
-    // Host B sends ARP Reply
-    initialArcs.set('a5', { id: 'a5', sourceId: 'p5', destinationId: 't2' });
-    initialArcs.set('a6', { id: 'a6', sourceId: 't2', destinationId: 'p4' }); // Host B goes back to listening
+    // Resolver queries TLD
+    initialArcs.set('a8', { id: 'a8', sourceId: 'p5', destinationId: 't3' });
+    initialArcs.set('a9', { id: 'a9', sourceId: 'p8', destinationId: 't3' });
+    initialArcs.set('a10', { id: 'a10', sourceId: 't3', destinationId: 'p6' });
+    initialArcs.set('a11', { id: 'a11', sourceId: 't3', destinationId: 'p8' }); // TLD ready again
 
-    // Host A must be waiting to process reply
-    initialArcs.set('a7', { id: 'a7', sourceId: 'p2', destinationId: 't2' });
-    initialArcs.set('a8', { id: 'a8', sourceId: 't2', destinationId: 'p3' });
+    // Resolver queries Authoritative
+    initialArcs.set('a12', { id: 'a12', sourceId: 'p6', destinationId: 't4' });
+    initialArcs.set('a13', { id: 'a13', sourceId: 'p9', destinationId: 't4' });
+    initialArcs.set('a14', { id: 'a14', sourceId: 't4', destinationId: 'p9' }); // Authoritative ready again
+    
+    // Authoritative response enables sending IP to client
+    initialArcs.set('a15', { id: 'a15', sourceId: 't4', destinationId: 'p3' }); // Resolver is free
+    initialArcs.set('a16', { id: 'a16', sourceId: 't4', destinationId: 't5' }); // Triggers t5 implicitly by sharing arc from t4
 
-    // Communication can now happen
-    initialArcs.set('a9', { id: 'a9', sourceId: 'p3', destinationId: 't3' });
+    // Send IP to Client
+    initialArcs.set('a17', { id: 'a17', sourceId: 't5', destinationId: 'p2' });
 
     // Loop back
-    initialArcs.set('a10', { id: 'a10', sourceId: 't3', destinationId: 'p_loop' });
-    initialArcs.set('a11', { id: 'a11', sourceId: 'p_loop', destinationId: 't4' });
-    initialArcs.set('a12', { id: 'a12', sourceId: 't4', destinationId: 'p1' });
+    initialArcs.set('a18', { id: 'a18', sourceId: 'p2', destinationId: 't6' });
+    initialArcs.set('a19', { id: 'a19', sourceId: 't6', destinationId: 'p10' });
+    initialArcs.set('a20', { id: 'a20', sourceId: 'p10', destinationId: 't1' });
     
     return initialArcs;
 }
@@ -182,6 +201,16 @@ export default function PetriNetEditor() {
         const incomingArcs = Array.from(arcs.values()).filter(
           (arc) => arc.destinationId === el.id
         );
+
+        // A special case for t5 which is triggered by t4
+        if (el.id === 't5') {
+            const t4 = getElement('t4') as Transition;
+            if (el.isFirable !== t4?.isFirable) {
+                 transitionsToUpdate.set(el.id, { isFirable: t4.isFirable });
+            }
+            continue;
+        }
+
         let isFirable = incomingArcs.length > 0;
         for (const arc of incomingArcs) {
           const source = getElement(arc.sourceId);
@@ -201,7 +230,9 @@ export default function PetriNetEditor() {
             const newElements = new Map(prev);
             transitionsToUpdate.forEach((updates, id) => {
                 const el = newElements.get(id) as Transition;
-                newElements.set(id, { ...el, ...updates });
+                if (el) {
+                  newElements.set(id, { ...el, ...updates });
+                }
             });
             return newElements;
         });
@@ -233,6 +264,9 @@ export default function PetriNetEditor() {
             const dest = newElements.get(arc.destinationId);
             if (dest && dest.type === 'place') {
                  newElements.set(arc.destinationId, {...dest, tokens: dest.tokens + 1});
+            } else if (dest && dest.type === 'transition') {
+                // This handles the implicit t4 -> t5 firing
+                // The token doesn't go anywhere, it just enables the next transition
             }
         });
 
@@ -248,16 +282,19 @@ export default function PetriNetEditor() {
     if (firableTransitions.length === 0) {
         return; 
     }
-
-    // Prioritize t4 if available to keep the loop going cleanly
-    const t4 = firableTransitions.find(t => t.id === 't4');
-    if (t4) {
-        fireTransition(t4.id);
-        return;
+    
+    // Fire the first available transition in the sequence for a deterministic simulation
+    const transitionOrder = ['t1', 't2', 't3', 't4', 't5', 't6'];
+    for (const id of transitionOrder) {
+        const transition = firableTransitions.find(t => t.id === id);
+        if(transition) {
+            fireTransition(transition.id);
+            return;
+        }
     }
 
-    const randomIndex = Math.floor(Math.random() * firableTransitions.length);
-    fireTransition(firableTransitions[randomIndex].id);
+    // Fallback for any other firable transition
+    fireTransition(firableTransitions[0].id);
   };
 
 
@@ -440,12 +477,12 @@ export default function PetriNetEditor() {
     }
 
     // Custom path for the loopback arc for better visuals
-    if (arc.id === 'a12') {
+    if (arc.id === 'a20') {
         const sx = source.position.x;
         const sy = source.position.y;
         const dx = dest.position.x;
         const dy = dest.position.y;
-        return `M${sx},${sy} C ${sx},${sy-50} ${dx},${dy-50} ${dx},${dy}`
+        return `M${sx},${sy} C ${sx+50},${sy} ${dx-50},${dy+100} ${dx},${dy}`
     }
 
     return `M${startPoint.x},${startPoint.y} L${endPoint.x},${endPoint.y}`;
@@ -486,40 +523,40 @@ export default function PetriNetEditor() {
             <SidebarHeader>
                 <div className="flex items-center gap-2 p-2">
                     <Share2 className="text-primary" />
-                    <h1 className="text-xl font-bold text-primary">PetriPainter</h1>
+                    <h1 className="text-xl font-bold text-primary">PetriDNS</h1>
                 </div>
             </SidebarHeader>
             <SidebarContent>
                 <ScrollArea className="h-full">
                     <SidebarGroup>
-                        <SidebarGroupLabel className="flex items-center"><Settings2 className="mr-2"/>Controls</SidebarGroupLabel>
+                        <SidebarGroupLabel className="flex items-center"><Settings2 className="mr-2"/>Contrôles</SidebarGroupLabel>
                         <div className="grid gap-2 p-2">
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button variant="outline" className="w-full justify-start">
                                         <MousePointer className="mr-2 h-4 w-4" />
-                                        {tool.charAt(0).toUpperCase() + tool.slice(1)} Tool
+                                        {tool.charAt(0).toUpperCase() + tool.slice(1)} Outil
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent>
                                     <DropdownMenuItem onSelect={() => { setTool("select"); }}>
-                                        <MousePointer className="mr-2 h-4 w-4" /> Select & Move
+                                        <MousePointer className="mr-2 h-4 w-4" /> Sélectionner & Déplacer
                                     </DropdownMenuItem>
                                     <DropdownMenuItem onSelect={() => { setTool("place"); }}>
-                                        <Circle className="mr-2 h-4 w-4" /> Add Place
+                                        <Circle className="mr-2 h-4 w-4" /> Ajouter une Place
                                     </DropdownMenuItem>
                                     <DropdownMenuItem onSelect={() => { setTool("transition"); }}>
-                                        <RectangleHorizontal className="mr-2 h-4 w-4" /> Add Transition
+                                        <RectangleHorizontal className="mr-2 h-4 w-4" /> Ajouter une Transition
                                     </DropdownMenuItem>
                                     <DropdownMenuItem onSelect={() => { setTool("arc"); setArcStartState(null); }}>
-                                        <ArrowRight className="mr-2 h-4 w-4" /> Connect (Arc)
+                                        <ArrowRight className="mr-2 h-4 w-4" /> Connecter (Arc)
                                     </DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
 
                             <div className="flex items-center gap-2">
                                 <Button onClick={runSimulationStep} disabled={firableTransitionsCount === 0} className="flex-1">
-                                    <StepForward className="mr-2 h-4 w-4" /> Step
+                                    <StepForward className="mr-2 h-4 w-4" /> Étape Suivante
                                 </Button>
                                 <Button onClick={resetDiagram} variant="outline" size="icon">
                                     <RefreshCw className="h-4 w-4" />
@@ -531,16 +568,16 @@ export default function PetriNetEditor() {
                     <Separator />
                     
                     <SidebarGroup>
-                        <SidebarGroupLabel className="flex items-center"><FileText className="mr-2"/>Properties</SidebarGroupLabel>
+                        <SidebarGroupLabel className="flex items-center"><FileText className="mr-2"/>Propriétés</SidebarGroupLabel>
                         <div className="p-2 space-y-4">
                             {selectedElement ? (
                                 <>
-                                    <PropertyDisplay label="Name" value={selectedElement.name} icon={<FileText size={16} />} />
+                                    <PropertyDisplay label="Nom" value={selectedElement.name} icon={<FileText size={16} />} />
                                     <PropertyDisplay label="Type" value={selectedElement.type} icon={<Type size={16} />} />
                                     {selectedElement.type === 'place' && (
                                         <>
                                             <Separator />
-                                            <PropertyDisplay label="Tokens" value={selectedElement.tokens} icon={<Hash size={16} />} />
+                                            <PropertyDisplay label="Jetons" value={selectedElement.tokens} icon={<Hash size={16} />} />
                                             <div className="flex items-center justify-between pt-2">
                                                 <Button size="icon" variant="outline" onClick={() => changeTokens(-1)}><Minus className="h-4 w-4" /></Button>
                                                 <span className="text-lg font-bold">{selectedElement.tokens}</span>
@@ -550,7 +587,7 @@ export default function PetriNetEditor() {
                                     )}
                                 </>
                             ) : (
-                                <p className="text-sm text-muted-foreground text-center py-4">Select an element to see its properties.</p>
+                                <p className="text-sm text-muted-foreground text-center py-4">Sélectionnez un élément pour voir ses propriétés.</p>
                             )}
                         </div>
                     </SidebarGroup>
@@ -558,7 +595,7 @@ export default function PetriNetEditor() {
                     <Separator />
                     
                     <SidebarGroup>
-                        <SidebarGroupLabel className="flex items-center"><ListTree className="mr-2"/>Network State</SidebarGroupLabel>
+                        <SidebarGroupLabel className="flex items-center"><ListTree className="mr-2"/>État du Réseau</SidebarGroupLabel>
                         <div className="p-2 space-y-2">
                             {Array.from(elements.values())
                                 .filter((el): el is Place => el.type === 'place')
@@ -574,7 +611,7 @@ export default function PetriNetEditor() {
                 </ScrollArea>
             </SidebarContent>
             <SidebarFooter>
-                <Button onClick={clearAll} variant="destructive" size="sm" className="w-full"><Trash2 className="mr-2 h-4 w-4" /> Clear Canvas</Button>
+                <Button onClick={clearAll} variant="destructive" size="sm" className="w-full"><Trash2 className="mr-2 h-4 w-4" /> Vider le Canevas</Button>
             </SidebarFooter>
         </Sidebar>
 
