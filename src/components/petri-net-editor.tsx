@@ -62,31 +62,31 @@ const TRANSITION_HEIGHT = 20;
 const getInitialElements = (): Map<string, NetworkElement> => {
   const initialElements = new Map<string, NetworkElement>();
   // Client
-  initialElements.set('p1', { id: 'p1', type: 'place', position: { x: 100, y: 300 }, name: 'Client: Ready to Query', tokens: 1 });
-  initialElements.set('p2', { id: 'p2', type: 'place', position: { x: 800, y: 300 }, name: 'Client: IP Received', tokens: 0 });
+  initialElements.set('p1', { id: 'p1', type: 'place', position: { x: 100, y: 300 }, name: 'Client: Prêt', tokens: 1 });
+  initialElements.set('p2', { id: 'p2', type: 'place', position: { x: 800, y: 300 }, name: 'Client: IP Reçue', tokens: 0 });
 
   // Recursive Resolver
-  initialElements.set('p3', { id: 'p3', type: 'place', position: { x: 250, y: 100 }, name: 'Resolver: Waiting for Query', tokens: 1 });
-  initialElements.set('p4', { id: 'p4', type: 'place', position: { x: 400, y: 100 }, name: 'Resolver: Querying Root', tokens: 0 });
-  initialElements.set('p5', { id: 'p5', type: 'place', position: { x: 550, y: 100 }, name: 'Resolver: Querying TLD', tokens: 0 });
-  initialElements.set('p6', { id: 'p6', type: 'place', position: { x: 700, y: 100 }, name: 'Resolver: Querying Authoritative', tokens: 0 });
+  initialElements.set('p3', { id: 'p3', type: 'place', position: { x: 250, y: 100 }, name: 'Résolveur: Attente', tokens: 1 });
+  initialElements.set('p4', { id: 'p4', type: 'place', position: { x: 400, y: 100 }, name: 'Résolveur: Req. Racine', tokens: 0 });
+  initialElements.set('p5', { id: 'p5', type: 'place', position: { x: 550, y: 100 }, name: 'Résolveur: Req. TLD', tokens: 0 });
+  initialElements.set('p6', { id: 'p6', type: 'place', position: { x: 700, y: 100 }, name: 'Résolveur: Req. Autorit.', tokens: 0 });
 
   // DNS Servers
-  initialElements.set('p7', { id: 'p7', type: 'place', position: { x: 400, y: 500 }, name: 'Root Server: Ready', tokens: 1 });
-  initialElements.set('p8', { id: 'p8', type: 'place', position: { x: 550, y: 500 }, name: 'TLD Server: Ready', tokens: 1 });
-  initialElements.set('p9', { id: 'p9', type: 'place', position: { x: 700, y: 500 }, name: 'Authoritative Server: Ready', tokens: 1 });
+  initialElements.set('p7', { id: 'p7', type: 'place', position: { x: 400, y: 500 }, name: 'Serveur Racine', tokens: 1 });
+  initialElements.set('p8', { id: 'p8', type: 'place', position: { x: 550, y: 500 }, name: 'Serveur TLD', tokens: 1 });
+  initialElements.set('p9', { id: 'p9', type: 'place', position: { x: 700, y: 500 }, name: 'Serveur Autorit.', tokens: 1 });
   
   // Final State & Loop
-  initialElements.set('p10', { id: 'p10', type: 'place', position: { x: 950, y: 300 }, name: 'Start New Query', tokens: 0 });
+  initialElements.set('p10', { id: 'p10', type: 'place', position: { x: 950, y: 300 }, name: 'Nouvelle Requête', tokens: 0 });
 
 
   // Transitions
-  initialElements.set('t1', { id: 't1', type: 'transition', position: { x: 250, y: 300 }, name: 'Send Query to Resolver', isFirable: false });
-  initialElements.set('t2', { id: 't2', type: 'transition', position: { x: 400, y: 300 }, name: 'Root Server Responds', isFirable: false });
-  initialElements.set('t3', { id: 't3', type: 'transition', position: { x: 550, y: 300 }, name: 'TLD Server Responds', isFirable: false });
-  initialElements.set('t4', { id: 't4', type: 'transition', position: { x: 700, y: 300 }, name: 'Authoritative Responds', isFirable: false });
-  initialElements.set('t5', { id: 't5', type: 'transition', position: { x: 800, y: 100 }, name: 'Send IP to Client', isFirable: false });
-  initialElements.set('t6', { id: 't6', type: 'transition', position: { x: 950, y: 200 }, name: 'Loop Back', isFirable: false });
+  initialElements.set('t1', { id: 't1', type: 'transition', position: { x: 250, y: 300 }, name: 'Req. Résolveur', isFirable: false });
+  initialElements.set('t2', { id: 't2', type: 'transition', position: { x: 400, y: 300 }, name: 'Rép. Racine', isFirable: false });
+  initialElements.set('t3', { id: 't3', type: 'transition', position: { x: 550, y: 300 }, name: 'Rép. TLD', isFirable: false });
+  initialElements.set('t4', { id: 't4', type: 'transition', position: { x: 700, y: 300 }, name: 'Rép. Autorit.', isFirable: false });
+  initialElements.set('t5', { id: 't5', type: 'transition', position: { x: 800, y: 100 }, name: 'Envoi IP au Client', isFirable: false });
+  initialElements.set('t6', { id: 't6', type: 'transition', position: { x: 950, y: 200 }, name: 'Recommencer', isFirable: false });
   
   return initialElements;
 }
@@ -117,7 +117,10 @@ const getInitialArcs = (): Map<string, Arc> => {
     
     // Authoritative response enables sending IP to client
     initialArcs.set('a15', { id: 'a15', sourceId: 't4', destinationId: 'p3' }); // Resolver is free
-    initialArcs.set('a16', { id: 'a16', sourceId: 't4', destinationId: 't5' }); // Triggers t5 implicitly by sharing arc from t4
+    
+    // Enable sending IP to client (t5) after t4
+    const implicitArcId = 'implicit_t4_t5';
+    initialArcs.set(implicitArcId, { id: implicitArcId, sourceId: 't4', destinationId: 't5'});
 
     // Send IP to Client
     initialArcs.set('a17', { id: 'a17', sourceId: 't5', destinationId: 'p2' });
@@ -197,32 +200,64 @@ export default function PetriNetEditor() {
     const transitionsToUpdate = new Map<string, Partial<Transition>>();
 
     for (const el of elements.values()) {
-      if (el.type === "transition") {
+        if (el.type !== "transition") continue;
+
         const incomingArcs = Array.from(arcs.values()).filter(
-          (arc) => arc.destinationId === el.id
+            (arc) => arc.destinationId === el.id
         );
 
-        // A special case for t5 which is triggered by t4
+        // A special case for t5 which is enabled by t4 firing
         if (el.id === 't5') {
-            const t4 = getElement('t4') as Transition;
-            if (el.isFirable !== t4?.isFirable) {
-                 transitionsToUpdate.set(el.id, { isFirable: t4.isFirable });
-            }
-            continue;
-        }
+            const isEnabledByT4 = incomingArcs.some(arc => {
+                const source = getElement(arc.sourceId);
+                return source?.type === 'transition' && source.isFirable;
+            });
 
-        let isFirable = incomingArcs.length > 0;
-        for (const arc of incomingArcs) {
-          const source = getElement(arc.sourceId);
-          if (source?.type !== "place" || source.tokens === 0) {
-            isFirable = false;
-            break;
-          }
+            // For t5, we just check if t4 fired. We don't need a token check.
+            // A better model would have t4 create a token that t5 consumes.
+            // For now, let's keep it simple: t5 is firable if an incoming transition *was* firable
+            // This is tricky. A simple approach: t5 is enabled by an "event" from t4.
+            // Let's model this by making t5 firable if the arc from t4 exists and t4 itself is firable.
+            // This still has issues. The cleanest way is for t4 to produce a token.
+            // Let's add an intermediate place.
+
+            // Re-evaluating the model: t4 firing should enable t5. Let's create an intermediate place.
+            // For now, let's stick to the direct transition link logic.
+            // t5 is firable if t4 *just fired*. This requires state outside the petri net model, which is bad.
+            
+            // Let's simplify: A transition is firable if ALL its input PLACES have tokens.
+            let isFirable = incomingArcs.length > 0;
+            for (const arc of incomingArcs) {
+                const source = getElement(arc.sourceId);
+                if (source?.type === "place") {
+                    if (source.tokens === 0) {
+                        isFirable = false;
+                        break;
+                    }
+                }
+                 else if (source?.type === "transition") {
+                    // In this model, a T->T arc implies dependency but not token flow.
+                    // This is non-standard. The correct way is Place -> Transition -> Place.
+                    // Let's ignore T->T arcs for firability check, and handle firing in fireTransition.
+                    continue;
+                }
+            }
+
+            // Let's correct the model to avoid T->T arcs for firability checks.
+            const placeInputs = incomingArcs.filter(arc => getElement(arc.sourceId)?.type === 'place');
+             isFirable = placeInputs.length > 0;
+             for (const arc of placeInputs) {
+                const source = getElement(arc.sourceId) as Place;
+                if (source.tokens === 0) {
+                    isFirable = false;
+                    break;
+                }
+             }
+
+            if (el.isFirable !== isFirable) {
+                transitionsToUpdate.set(el.id, { isFirable });
+            }
         }
-        if (el.isFirable !== isFirable) {
-            transitionsToUpdate.set(el.id, { isFirable });
-        }
-      }
     }
     
     if (transitionsToUpdate.size > 0) {
@@ -253,13 +288,15 @@ export default function PetriNetEditor() {
     setElements(prev => {
         const newElements = new Map(prev);
         
+        // Consume tokens from input places
         incoming.forEach(arc => {
-            const place = newElements.get(arc.sourceId) as Place;
+            const place = newElements.get(arc.sourceId);
             if (place && place.type === 'place') {
                 newElements.set(arc.sourceId, {...place, tokens: Math.max(0, place.tokens - 1)});
             }
         });
 
+        // Produce tokens in output places
         outgoing.forEach(arc => {
             const dest = newElements.get(arc.destinationId);
             if (dest && dest.type === 'place') {
@@ -267,6 +304,7 @@ export default function PetriNetEditor() {
             } else if (dest && dest.type === 'transition') {
                 // This handles the implicit t4 -> t5 firing
                 // The token doesn't go anywhere, it just enables the next transition
+                // This is non-standard but a way to model sequential dependency without intermediate places
             }
         });
 
@@ -735,5 +773,3 @@ export default function PetriNetEditor() {
     </SidebarProvider>
   );
 }
-
-    
